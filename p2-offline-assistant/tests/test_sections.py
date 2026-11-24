@@ -20,6 +20,24 @@ def test_long_doc_splits_at_headings_and_drops_stubs():
     assert all(s.id.startswith("n--") for s in secs)
 
 
+def test_drops_are_recorded_with_reasons():
+    drops = []
+    doc = f"# Doc\n## A\n{W}\n## B\ntoo short\n## C\n{W}{W}{W}\n## D\n{W}"
+    secs = split_markdown(doc, "n.md", min_words=150, max_words=500, drops=drops)
+    assert [s.title for s in secs] == ["Doc > A", "Doc > D"]
+    assert {(d.title, d.reason) for d in drops} == {
+        ("Doc", "empty_container"), ("Doc > B", "too_short"),
+        ("Doc > C", "too_long_no_subheadings")}
+    assert all(d.source == "n.md" for d in drops)
+
+
+def test_single_h1_becomes_doc_title():
+    doc = f"# Backprop\n## 1. Chain rule\n{W}\n## 2. SGD\n{W}"
+    secs = split_markdown(doc, "01_backprop.md", max_words=300)
+    assert [s.title for s in secs] == ["Backprop > 1. Chain rule", "Backprop > 2. SGD"]
+    assert secs[0].id == "01-backprop--1-chain-rule"
+
+
 def test_oversized_section_recurses_into_subheadings():
     doc = f"## A\n{W}\n### A1\n{W}\n### A2\n{W}\n## B\n{W}"
     secs = split_markdown(doc, "n.md", min_words=150, max_words=450)

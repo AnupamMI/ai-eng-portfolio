@@ -84,18 +84,39 @@ def _parse(text: str, doc_title: str) -> _Node:
     return root
 
 
-def _emit(node: _Node, path: list[str], min_w: int, max_w: int) -> list[tuple[str, str]]:
-    """Return (title_path, text) pairs for node, splitting if too long."""
+class Drop(BaseModel):
+    """A heading's own text that did not become a section, and why."""
+
+    source: str = ""
+    title: str
+    words: int
+    reason: str  # too_short | too_long_no_subheadings | empty_container
+
+
+def _emit(node: _Node, path: list[str], min_w: int, max_w: int,
+          drops: list[Drop]) -> list[tuple[str, str]]:
+    """Return (title_path, text) pairs for node, splitting if too long.
+    Text that is not kept is recorded in `drops` with a reason."""
     title = " > ".join(path)
     text = "\n".join(node.all_lines()).strip()
-    if word_count(text) <= max_w or not node.children:
-        return [(title, text)] if min_w <= word_count(text) <= max_w else []
+    n = word_count(text)
+    if n <= max_w or not node.children:
+        if min_w <= n <= max_w:
+            return [(title, text)]
+        drops.append(Drop(title=title, words=n,
+                          reason="too_short" if n < min_w else "too_long_no_subheadings"))
+        return []
     out = []
     intro = "\n".join(node.body).strip()
-    if min_w <= word_count(intro) <= max_w:
+    k = word_count(intro)
+    if min_w <= k <= max_w:
         out.append((title, intro))
+    else:
+        drops.append(Drop(title=title, words=k,
+                          reason="empty_container" if k == 0 else
+                          "too_short" if k < min_w else "too_long_no_subheadings"))
     for c in node.children:
-        out.extend(_emit(c, path + [c.title], min_w, max_w))
+        out.extend(_emit(c, path + [c.title], min_w, max_w, drops))
     return out
 
 
@@ -104,7 +125,7 @@ def _slug(s: str) -> str:
 
 
 def split_markdown(text: str, source: str, *, min_words: int = 150, max_words: int = 1200,
-                   mdn: bool = False) -> list[Section]:
+                   mdn: bool = False, drops: list[Drop] | None = None) -> list[Section]:
     m = FRONT_MATTER.match(text)
     front, text = (m.group(0), text[m.end():]) if m else ("", text)
     t = re.search(r"^title:\s*(.+)$", front, re.M)
@@ -112,7 +133,19 @@ def split_markdown(text: str, source: str, *, min_words: int = 150, max_words: i
     if mdn:
         text = strip_mdn_macros(text)
 
-    pieces = _emit(_parse(text, doc_title), [doc_title], min_words, max_words)
+    root = _parse(text, doc_title)
+    # No front matter and the file is one "# Title" wrapping everything: that H1
+    # is the document title (otherwise titles read "filename > Title > ...").
+    if (not t and not "\n".join(root.body).strip() and len(root.children) == 1
+            and root.children[0].level == 1):
+        root = root.children[0]
+        root.level = 0
+        doc_title = root.title
+
+    file_drops: list[Drop] = []
+    pieces = _emit(root, [doc_title], min_words, max_words, file_drops)
+    if drops is not None:
+        drops.extend(d.model_copy(update={"source": source}) for d in file_drops)
 
     sections, seen = [], set()
     for title, body in pieces:
@@ -126,7 +159,8 @@ def split_markdown(text: str, source: str, *, min_words: int = 150, max_words: i
     return sections
 
 
-def load_notes(root: str | Path, *, mdn: bool = False, **kw) -> list[Section]:
+def load_notes(root: str | Path, *, mdn: bool = False, drops: list[Drop] | None = None,
+               **kw) -> list[Section]:
     root = Path(root)
     out: list[Section] = []
     for p in sorted(root.rglob("*.md")):
@@ -134,7 +168,7 @@ def load_notes(root: str | Path, *, mdn: bool = False, **kw) -> list[Section]:
             continue
         # utf-8-sig: a BOM from Notepad would otherwise hide YAML front matter.
         out.extend(split_markdown(p.read_text(encoding="utf-8-sig"), p.relative_to(root).as_posix(),
-                                  mdn=mdn, **kw))
+                                  mdn=mdn, drops=drops, **kw))
     return out
 
 

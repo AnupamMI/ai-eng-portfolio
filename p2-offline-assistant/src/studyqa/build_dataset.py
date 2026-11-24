@@ -9,7 +9,23 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from studyqa.sections import load_notes, select, to_cases
+from collections import Counter
+
+from studyqa.sections import Drop, Section, load_notes, select, to_cases
+
+
+def split_report(secs: list[Section], drops: list[Drop]) -> str:
+    """Kept vs filtered counts, with reasons. Empty container headings (a title
+    whose text lives entirely in its subsections) hold no text, so they are
+    listed but not counted as filtered content."""
+    real = [d for d in drops if d.reason != "empty_container"]
+    lines = [f"kept {len(secs)} sections from {len({s.source for s in secs})} files; "
+             f"filtered {len(real)} "
+             f"({', '.join(f'{r}={n}' for r, n in Counter(d.reason for d in real).items()) or 'none'}); "
+             f"{len(drops) - len(real)} empty container headings"]
+    for d in drops:
+        lines.append(f"  drop [{d.reason}] {d.source}: {d.title} ({d.words}w)")
+    return "\n".join(lines)
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -23,8 +39,10 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--max-words", type=int, default=1200)
     args = ap.parse_args(argv)
 
+    drops: list[Drop] = []
     secs = load_notes(args.notes, mdn=args.mdn, min_words=args.min_words,
-                      max_words=args.max_words)
+                      max_words=args.max_words, drops=drops)
+    print(split_report(secs, drops))
     picked = select(secs, args.n, seed=args.seed)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as f:
