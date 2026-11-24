@@ -1,0 +1,20 @@
+[project]
+name = "ai-eng-portfolio"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = ["evalkit"]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+evalkit = { workspace = true }
+
+[tool.uv.workspace]
+members = ["shared/evalkit"]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["shared/evalkit/tests"]
