@@ -17,36 +17,63 @@ class StructuredOutputError(Exception):
     """The model failed to produce valid output after all attempts."""
 
 
+class ChatResponse(BaseModel):
+    """Model reply plus Ollama's server-side counters (durations in seconds)."""
+
+    content: str
+    eval_count: int = 0  # generated tokens
+    eval_duration_s: float = 0.0
+    prompt_eval_count: int = 0  # prompt tokens actually processed
+    prompt_eval_duration_s: float = 0.0
+    load_duration_s: float = 0.0
+    total_duration_s: float = 0.0
+
+    @property
+    def tokens_per_s(self) -> float:
+        """Decode speed, excluding model load and prompt processing."""
+        return self.eval_count / self.eval_duration_s if self.eval_duration_s else 0.0
+
+    @classmethod
+    def from_ollama(cls, data: dict) -> ChatResponse:
+        ns = 1e9
+        return cls(
+            content=data["message"]["content"],
+            eval_count=data.get("eval_count", 0),
+            eval_duration_s=data.get("eval_duration", 0) / ns,
+            prompt_eval_count=data.get("prompt_eval_count", 0),
+            prompt_eval_duration_s=data.get("prompt_eval_duration", 0) / ns,
+            load_duration_s=data.get("load_duration", 0) / ns,
+            total_duration_s=data.get("total_duration", 0) / ns,
+        )
+
+
 class Ollama:
     def __init__(self, model: str, *, url: str = DEFAULT_URL, temperature: float = 0.0,
-                 timeout: float = 120.0, seed: int = 0):
+                 timeout: float = 120.0, seed: int = 0,
+                 transport: httpx.BaseTransport | None = None):
         self.model = model
         self.options = {"temperature": temperature, "seed": seed}
-        self._http = httpx.Client(base_url=url, timeout=timeout)
-        # Counters so projects can report how often structured output fails.
-        self.calls = 0
-        self.validation_failures = 0
+        # `transport` lets tests inject httpx.MockTransport instead of a live server.
+        self._http = httpx.Client(base_url=url, timeout=timeout, transport=transport)
 
-    def chat(self, messages: list[dict], *, format: dict | str | None = None) -> str:
+    def chat(self, messages: list[dict], *, format: dict | str | None = None) -> ChatResponse:
         body = {"model": self.model, "messages": messages, "stream": False,
                 "options": self.options}
         if format is not None:
             body["format"] = format
-        self.calls += 1
         resp = self._http.post("/api/chat", json=body)
         resp.raise_for_status()
-        return resp.json()["message"]["content"]
+        return ChatResponse.from_ollama(resp.json())
 
     def structured(self, messages: list[dict], schema: type[T], *, retries: int = 1) -> T:
         """Ask for JSON matching `schema`; on invalid output, show the error and retry."""
         msgs = list(messages)
         last_err: Exception | None = None
         for _ in range(retries + 1):
-            raw = self.chat(msgs, format=schema.model_json_schema())
+            raw = self.chat(msgs, format=schema.model_json_schema()).content
             try:
                 return schema.model_validate_json(raw)
             except (ValidationError, json.JSONDecodeError) as e:
-                self.validation_failures += 1
                 last_err = e
                 msgs = msgs + [
                     {"role": "assistant", "content": raw},
