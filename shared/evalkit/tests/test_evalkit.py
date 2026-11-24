@@ -54,12 +54,33 @@ def test_bootstrap_detects_real_improvement_and_not_noise():
     assert lo < 0 < hi
 
 
-def test_compare_uses_shared_cases_only():
-    before = [Result(case_id=str(i), latency_s=0, scores={"em": 0.0}) for i in range(30)]
-    after = [Result(case_id=str(i), latency_s=0, scores={"em": 1.0}) for i in range(5, 40)]
-    (d,) = compare(before, after)
+def _results(ids, score):
+    return [Result(case_id=str(i), latency_s=0, scores={"em": score}) for i in ids]
+
+
+def test_compare_refuses_mismatched_cases():
+    with pytest.raises(ValueError, match="different cases"):
+        compare(_results(range(30), 0.0), _results(range(5, 40), 1.0))
+
+
+def test_compare_partial_lists_dropped_cases():
+    (d,) = compare(_results(range(30), 0.0), _results(range(5, 40), 1.0), allow_partial=True)
     assert d.n == 25 and d.delta == 1.0 and d.significant
+    assert len(d.dropped) == 15 and "0" in d.dropped and "39" in d.dropped
     assert "| em | 25 |" in to_markdown([d])
+
+
+def test_compare_rejects_duplicate_ids():
+    with pytest.raises(ValueError, match="duplicate"):
+        compare(_results([1, 1], 0.0), _results([1], 1.0))
+
+
+def test_compare_is_paired_by_case_id_not_position():
+    # Same per-case scores, opposite order: a paired comparison sees zero change.
+    before = [Result(case_id=str(i), latency_s=0, scores={"em": float(i % 2)}) for i in range(20)]
+    after = list(reversed(before))
+    (d,) = compare(before, after)
+    assert d.delta == 0 and d.ci_low == 0 and d.ci_high == 0
 
 
 def _ollama_up() -> bool:

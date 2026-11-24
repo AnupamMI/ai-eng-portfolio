@@ -24,6 +24,7 @@ class Delta(BaseModel):
     delta: float
     ci_low: float
     ci_high: float
+    dropped: list[str] = []  # case ids excluded because only one run had them
 
     @property
     def significant(self) -> bool:
@@ -59,11 +60,31 @@ def paired_bootstrap(
     return means[int(0.025 * iters)], means[int(0.975 * iters) - 1]
 
 
-def compare(before: list[Result], after: list[Result], *, seed: int = 0) -> list[Delta]:
-    """Compare two runs on the cases they share, metric by metric."""
-    b = {r.case_id: r for r in before}
-    a = {r.case_id: r for r in after}
+def _index(results: list[Result], name: str) -> dict[str, Result]:
+    idx = {r.case_id: r for r in results}
+    if len(idx) != len(results):
+        raise ValueError(f"{name} run has duplicate case ids")
+    return idx
+
+
+def compare(before: list[Result], after: list[Result], *, seed: int = 0,
+            allow_partial: bool = False) -> list[Delta]:
+    """Paired comparison of two runs, metric by metric.
+
+    Both runs must cover exactly the same case ids; otherwise the comparison
+    would quietly be over a different subset than claimed. Pass
+    allow_partial=True to compare the overlap anyway; the excluded ids are then
+    listed in each Delta's `dropped`.
+    """
+    b = _index(before, "before")
+    a = _index(after, "after")
     shared = sorted(b.keys() & a.keys())
+    dropped = sorted(b.keys() ^ a.keys())
+    if dropped and not allow_partial:
+        raise ValueError(
+            f"runs cover different cases; only in before: {sorted(b.keys() - a.keys())[:10]}, "
+            f"only in after: {sorted(a.keys() - b.keys())[:10]} (allow_partial=True to override)"
+        )
     if not shared:
         raise ValueError("runs share no case ids")
     metrics = sorted({m for r in before + after for m in r.scores})
@@ -74,7 +95,7 @@ def compare(before: list[Result], after: list[Result], *, seed: int = 0) -> list
         lo, hi = paired_bootstrap(bs, as_, seed=seed)
         mb, ma = statistics.fmean(bs), statistics.fmean(as_)
         deltas.append(Delta(metric=m, n=len(shared), before=mb, after=ma,
-                            delta=ma - mb, ci_low=lo, ci_high=hi))
+                            delta=ma - mb, ci_low=lo, ci_high=hi, dropped=dropped))
     return deltas
 
 
