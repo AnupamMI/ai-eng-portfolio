@@ -107,17 +107,22 @@ class Ollama:
                         ).raise_for_status()
 
     def structured(self, messages: list[dict], schema: type[T], *,
-                   retries: int = 1) -> StructuredResult[T]:
+                   retries: int = 1, constrained: bool = True) -> StructuredResult[T]:
         """Ask for JSON matching `schema`; on invalid output, show the error and retry.
+
+        constrained=True passes the JSON schema to Ollama, which restricts decoding
+        to schema-shaped output. constrained=False only forces syntactically valid
+        JSON (format="json"); the caller must describe the schema in the prompt.
 
         Returns the parsed value with per-attempt metadata. Raises
         StructuredOutputError (carrying the same metadata) if every attempt fails.
         """
+        fmt: dict | str = schema.model_json_schema() if constrained else "json"
         msgs = list(messages)
         responses: list[ChatResponse] = []
         errors: list[str] = []
         for _ in range(retries + 1):
-            resp = self.chat(msgs, format=schema.model_json_schema())
+            resp = self.chat(msgs, format=fmt)
             responses.append(resp)
             try:
                 value = schema.model_validate_json(resp.content)

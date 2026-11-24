@@ -102,3 +102,11 @@ def test_unload_posts_keep_alive_zero():
 
     Ollama("m", transport=httpx.MockTransport(handler)).unload()
     assert seen == [("/api/generate", {"model": "m", "keep_alive": 0})]
+
+
+def test_structured_unconstrained_uses_json_mode_and_still_validates():
+    seen: list[dict] = []
+    llm = Ollama("m", transport=fake_ollama(['{"a": 1, "b": "x"}', '{"a": 1, "b": 2}'], seen))
+    r = llm.structured([{"role": "user", "content": "x"}], Pair, constrained=False)
+    assert seen[0]["format"] == "json" and seen[1]["format"] == "json"
+    assert r.attempts == 2 and r.value == Pair(a=1, b=2)
