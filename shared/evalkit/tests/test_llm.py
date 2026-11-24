@@ -110,3 +110,45 @@ def test_structured_unconstrained_uses_json_mode_and_still_validates():
     r = llm.structured([{"role": "user", "content": "x"}], Pair, constrained=False)
     assert seen[0]["format"] == "json" and seen[1]["format"] == "json"
     assert r.attempts == 2 and r.value == Pair(a=1, b=2)
+
+
+def test_num_predict_sent_only_when_set():
+    seen: list[dict] = []
+    Ollama("m", transport=fake_ollama(["a"], seen)).chat([{"role": "user", "content": "x"}])
+    assert "num_predict" not in seen[0]["options"]
+    Ollama("m", num_predict=1536, transport=fake_ollama(["a"], seen)).chat(
+        [{"role": "user", "content": "x"}])
+    assert seen[1]["options"]["num_predict"] == 1536
+
+
+def _fake_with_reasons(replies, seen):
+    it = iter(replies)
+
+    def handler(request):
+        seen.append(json.loads(request.content))
+        content, reason = next(it)
+        return httpx.Response(200, json={"message": {"content": content},
+                                         "eval_count": 1536, "done_reason": reason})
+    return httpx.MockTransport(handler)
+
+
+def test_length_cutoff_is_recorded_and_not_echoed_on_retry():
+    seen: list[dict] = []
+    llm = Ollama("m", transport=_fake_with_reasons(
+        [('{"a": 1, "b": 2' + " " * 5000, "length"), ('{"a": 1, "b": 2}', "stop")], seen))
+    orig = [{"role": "user", "content": "x"}]
+    r = llm.structured(orig, Pair, retries=2)
+    assert r.attempts == 2 and r.responses[0].hit_length and not r.responses[1].hit_length
+    assert r.errors[0].startswith("hit num_predict limit (1536 tokens)")
+    retry = seen[1]["messages"]
+    assert len(retry) == 2 and retry[0] == orig[0]
+    assert "cut off at the length limit" in retry[1]["content"]
+    assert all(m["role"] != "assistant" for m in retry)  # truncated output not echoed
+
+
+def test_retry_prompt_does_not_accumulate_attempts():
+    seen: list[dict] = []
+    llm = Ollama("m", transport=fake_ollama(['{"a": 1}', '{"b": 1}', '{"a": 1, "b": 2}'], seen))
+    llm.structured([{"role": "user", "content": "x"}], Pair, retries=2)
+    assert len(seen[1]["messages"]) == len(seen[2]["messages"]) == 3  # orig + last attempt + fb
+    assert seen[2]["messages"][1]["content"] == '{"b": 1}'

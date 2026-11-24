@@ -24,6 +24,11 @@ class ChatResponse(BaseModel):
     load_duration_s: float = 0.0
     total_duration_s: float = 0.0
     num_ctx: int | None = None  # context window the request ran with
+    done_reason: str | None = None  # "stop", or "length" when num_predict cut it off
+
+    @property
+    def hit_length(self) -> bool:
+        return self.done_reason == "length"
 
     @property
     def tokens_per_s(self) -> float:
@@ -43,6 +48,7 @@ class ChatResponse(BaseModel):
         ns = 1e9
         return cls(
             num_ctx=num_ctx,
+            done_reason=data.get("done_reason"),
             content=data["message"]["content"],
             eval_count=data.get("eval_count", 0),
             eval_duration_s=data.get("eval_duration", 0) / ns,
@@ -80,15 +86,21 @@ class StructuredOutputError(Exception):
 class Ollama:
     def __init__(self, model: str, *, url: str = DEFAULT_URL, temperature: float = 0.0,
                  timeout: float = 120.0, seed: int = 0, num_ctx: int = 4096,
-                 keep_alive: str | int = "5m",
+                 num_predict: int | None = None, keep_alive: str | int = "5m",
                  transport: httpx.BaseTransport | None = None):
         """`num_ctx` is always sent explicitly: Ollama's default differs across
         versions and over-long prompts are truncated without an error.
+        `num_predict` caps generated tokens. Without it a model that never emits
+        a stop token generates until the context fills, after which Ollama shifts
+        the context (discarding the prompt) and keeps going until timeout. Keep
+        prompt tokens + num_predict <= num_ctx so a capped call cannot shift.
         `keep_alive` controls how long the model stays loaded (0 = unload now)."""
         self.model = model
         self.num_ctx = num_ctx
         self.keep_alive = keep_alive
         self.options = {"temperature": temperature, "seed": seed, "num_ctx": num_ctx}
+        if num_predict is not None:
+            self.options["num_predict"] = num_predict
         # `transport` lets tests inject httpx.MockTransport instead of a live server.
         self._http = httpx.Client(base_url=url, timeout=timeout, transport=transport)
 
@@ -114,6 +126,10 @@ class Ollama:
         to schema-shaped output. constrained=False only forces syntactically valid
         JSON (format="json"); the caller must describe the schema in the prompt.
 
+        Each retry sends the original messages plus only the latest failed
+        attempt, so the prompt does not grow with every retry. If the attempt was
+        cut off by num_predict, its (huge, truncated) output is not echoed back.
+
         Returns the parsed value with per-attempt metadata. Raises
         StructuredOutputError (carrying the same metadata) if every attempt fails.
         """
@@ -129,11 +145,17 @@ class Ollama:
                 return StructuredResult[schema](value=value, attempts=len(responses),
                                                 errors=errors, responses=responses)
             except (ValidationError, json.JSONDecodeError) as e:
-                errors.append(str(e))
-                msgs = msgs + [
-                    {"role": "assistant", "content": resp.content},
-                    {"role": "user", "content": f"That output was invalid: {e}. "
-                                                "Reply again with only valid JSON."},
-                ]
+                if resp.hit_length:
+                    errors.append(f"hit num_predict limit ({resp.eval_count} tokens): {e}")
+                    feedback = [{"role": "user", "content":
+                                 "Your previous reply was cut off at the length limit before "
+                                 "the JSON was complete. Reply again, more concisely, with "
+                                 "only valid JSON."}]
+                else:
+                    errors.append(str(e))
+                    feedback = [{"role": "assistant", "content": resp.content},
+                                {"role": "user", "content": f"That output was invalid: {e}. "
+                                                            "Reply again with only valid JSON."}]
+                msgs = list(messages) + feedback
         raise StructuredOutputError(errors[-1], attempts=len(responses), errors=errors,
                                     responses=responses)
