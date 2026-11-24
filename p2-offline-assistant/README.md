@@ -37,11 +37,15 @@ Reproduce: `uv run python -m studyqa.build_dataset --notes notes_sample --n 42 -
 - **Valid on first try / valid after retries**: output parses into the Pydantic schema. Up to 2 retries, each shown the validation error.
 - **Retries needed**: attempts - 1.
 - **Groundedness** (lexical, per question):
-  `quote_fidelity` = does `source_quote` actually appear in the section (1.0 if verbatim after normalization, else best fuzzy window match);
-  `answer_support` = share of the answer's content words found in the quote.
-  Grounded = `quote_fidelity >= tau_quote` and `answer_support >= tau_answer`.
+  `quote_fidelity` = does `source_quote` actually appear in the section (1.0 if verbatim after normalization, else best fuzzy window match; markdown link targets and URLs are stripped first);
+  `answer_support` = share of the answer's content words found in the **quote**;
+  `section_support` = the same against the **whole section**.
+  Grounded = `quote_fidelity >= 0.85` and `answer_support >= 0.4`.
+  Thresholds were **frozen before the main run** from the 8-section MDN smoke run, with the evidence in [docs/LOG.md](docs/LOG.md); they were not tuned on the results reported below.
+  Answer support is reported against both the quote and the section. Section support turned out to be near-saturated (about 1.00 for every model and mode in the smoke run: a whole section contains almost every content word an on-topic answer uses), so it is not a quality signal. It is a diagnostic: an answer that is section-supported but not quote-grounded is a *wrong quote*, not a made-up answer.
+- **Failure kinds** for sections that never produce valid output: *schema* (invalid JSON or wrong shape), *runaway* (an attempt hit the 1536-token output cap), *infra error* (HTTP error or timeout).
 - **Tokens/sec**: Ollama's `eval_count / eval_duration` (decode only; excludes load and prompt processing).
-- **Peak RAM**: working set of the `ollama serve` process tree above its idle baseline.
+- **RAM**: working set of the `ollama serve` process tree above its idle baseline, split into load peak, *loaded* (after warm-up; the headline), generation peak and end of run. A single peak was misleading: loading briefly holds two copies of the weights (see LOG).
 - **Hand grades**: 20 sections per model, both modes (120 rows), blind, 1-3 rubric.
 
 `difficulty` is generated and schema-validated but **not evaluated**: there is no
@@ -50,6 +54,12 @@ ground truth for it, and the hand-grading rubric does not score it.
 ## Results
 
 _TBD: full run on notes_sample._
+
+### Caveats that apply to the results
+
+- **The phi3 runaway was seen only on the longest section.** In the smoke run, phi3:mini generated without stopping (until the context filled and the prompt was discarded) on one MDN section, the longest at 1035 words; the next-longest smoke section was 602 words. The 1536-token output cap now turns this into a fast, retried failure. The main notes sections are 249-319 words, so the runaway may not appear in the main results at all; its absence there is not evidence that phi3 is robust on long inputs.
+- **Runs are single samples.** Temperature 0 with a fixed seed was not bit-reproducible on this CPU (a rerun of one section changed phi3's outcome; see LOG), so per-section results can flip between runs. Comparisons use paired bootstrap CIs over sections for that reason.
+- **Notes are LLM-generated** (see Datasets), so they are cleaner than real notes.
 
 ## Failures and fixes
 
