@@ -2,19 +2,21 @@
 name = "ai-eng-portfolio"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = ["evalkit"]
+dependencies = ["evalkit", "studyqa"]
 
 [tool.uv]
 package = false
 
 [tool.uv.sources]
 evalkit = { workspace = true }
+studyqa = { workspace = true }
 
 [tool.uv.workspace]
-members = ["shared/evalkit"]
+members = ["shared/evalkit", "p2-offline-assistant"]
 
 [dependency-groups]
 dev = ["pytest>=8"]
 
 [tool.pytest.ini_options]
-testpaths = ["shared/evalkit/tests"]
+testpaths = ["shared/evalkit/tests", "p2-offline-assistant/tests"]
+addopts = "--import-mode=importlib"
