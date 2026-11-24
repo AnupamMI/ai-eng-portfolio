@@ -93,6 +93,7 @@ def _ollama_up() -> bool:
         return False
 
 
+@pytest.mark.live
 @pytest.mark.skipif(not _ollama_up(), reason="Ollama not running")
 def test_ollama_structured_output():
     class Capital(BaseModel):

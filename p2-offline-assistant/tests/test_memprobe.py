@@ -28,6 +28,7 @@ def _ollama_running() -> bool:
         return False
 
 
+@pytest.mark.live
 @pytest.mark.skipif(not _ollama_running(), reason="Ollama not running")
 def test_live_tree_rss_is_positive():
     assert ollama_tree_rss() > 10 * MB

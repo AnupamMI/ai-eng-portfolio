@@ -134,7 +134,10 @@ def reliability_table(runs, meta) -> str:
             "|" + "---|" * 11]
     for (model, mode, p), rs in sorted(runs.items()):
         if p != 0:
-            continue  # quality is deterministic (temp 0, fixed seed); pass 0 is canonical
+            # Quality is reported from pass 0 only. Extra passes exist to measure timing
+            # spread; temp-0 CPU decoding is NOT bit-reproducible (docs/LOG.md), so
+            # pooling passes would mix different samples into one quality number.
+            continue
         kinds = [failure_kind(r) for r in rs]
         all_tps = [t for (m2, mo2, _), rs2 in runs.items() if m2 == model and mo2 == mode
                    for t in _tok_s(rs2)]
