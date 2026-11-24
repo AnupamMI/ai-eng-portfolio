@@ -35,6 +35,9 @@ def test_jsonl_roundtrip(tmp_path):
     p.write_text('{"id":"a","input":"x","expected":"y"}\n\n{"id":"b","input":"z"}\n')
     assert [c.id for c in load_cases(p)] == ["a", "b"]
 
+    p.write_text('{"id":"a","input":"x"}\n', encoding="utf-8-sig")  # BOM, as PowerShell writes
+    assert [c.id for c in load_cases(p)] == ["a"]
+
     p.write_text('{"id":"a","input":1}\n{"id":"a","input":2}\n')
     with pytest.raises(ValueError, match="duplicate"):
         load_cases(p)

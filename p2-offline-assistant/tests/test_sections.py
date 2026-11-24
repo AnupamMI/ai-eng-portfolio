@@ -39,6 +39,12 @@ def test_front_matter_gives_title_and_is_removed():
     assert s.title == "Closures" and "slug" not in s.text
 
 
+def test_bom_file_keeps_front_matter_title(tmp_path):
+    (tmp_path / "n.md").write_text(f"---\ntitle: Closures\n---\n\n{W}", encoding="utf-8-sig")
+    (s,) = load_notes(tmp_path)
+    assert s.title == "Closures" and "title:" not in s.text
+
+
 def test_strip_mdn_macros():
     t = ('Use {{HTTPHeader("Cache-Control")}} and {{Glossary("CORS", "cross-origin")}} '
          'or {{Glossary("Cookie")}}.\n{{Specifications}}')

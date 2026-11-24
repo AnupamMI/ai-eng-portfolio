@@ -132,7 +132,8 @@ def load_notes(root: str | Path, *, mdn: bool = False, **kw) -> list[Section]:
     for p in sorted(root.rglob("*.md")):
         if p.name.upper() in {"README.MD", "ATTRIBUTION.MD"}:
             continue
-        out.extend(split_markdown(p.read_text(encoding="utf-8"), p.relative_to(root).as_posix(),
+        # utf-8-sig: a BOM from Notepad would otherwise hide YAML front matter.
+        out.extend(split_markdown(p.read_text(encoding="utf-8-sig"), p.relative_to(root).as_posix(),
                                   mdn=mdn, **kw))
     return out
 

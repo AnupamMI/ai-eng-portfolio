@@ -32,7 +32,7 @@ class Result(BaseModel):
 def load_cases(path: str | Path) -> list[Case]:
     """Load cases from a JSONL file (one JSON object per line)."""
     cases = []
-    with open(path, encoding="utf-8") as f:
+    with open(path, encoding="utf-8-sig") as f:  # tolerate BOM (Windows editors)
         for lineno, line in enumerate(f, 1):
             if line.strip():
                 try:
@@ -54,5 +54,5 @@ def save_results(results: list[Result], path: str | Path) -> None:
 
 
 def load_results(path: str | Path) -> list[Result]:
-    with open(path, encoding="utf-8") as f:
+    with open(path, encoding="utf-8-sig") as f:
         return [Result.model_validate(json.loads(line)) for line in f if line.strip()]
