@@ -1,6 +1,6 @@
-"""Turn a bench run directory into report.md + questions.csv.
+﻿"""Turn a bench run directory into report.md + questions.csv.
 
-    uv run python -m studyqa.report runs/smoke_public [--tau-quote 0.9 --tau-answer 0.5]
+    uv run python -m studyqa.report runs/smoke_public [--tau-quote 0.85 --tau-answer 0.4]
 
 Grounding is recomputed from the stored questions and the frozen section file
 (hash-checked against meta.json), so metric fixes and threshold changes never
@@ -263,8 +263,8 @@ def report(run_dir: Path, tq: float, ta: float, *, reground: bool = True) -> str
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("run_dir", type=Path)
-    ap.add_argument("--tau-quote", type=float, default=0.9)
-    ap.add_argument("--tau-answer", type=float, default=0.5)
+    ap.add_argument("--tau-quote", type=float, default=0.85)
+    ap.add_argument("--tau-answer", type=float, default=0.4)
     a = ap.parse_args(argv)
     print(report(a.run_dir, a.tau_quote, a.tau_answer))
 

@@ -1,4 +1,4 @@
-"""Blind hand-grading: export a shuffled sample, import grades, analyse.
+﻿"""Blind hand-grading: export a shuffled sample, import grades, analyse.
 
     uv run python -m studyqa.grading export runs/full --cases data/full.jsonl --out grading/full
     # fill the `grade` column (1-3) in grading/full/to_grade.csv
@@ -101,7 +101,7 @@ def import_grades(run_dir: Path, grades_dir: Path, *, reground: bool = True) -> 
 
     # Per (model, mode): Results keyed by section with the human grade as a score.
     cells: dict[tuple[str, str], list[Result]] = defaultdict(list)
-    pairs = []  # (human grade, quote_fidelity, answer_support, grounded@0.9/0.5)
+    pairs = []  # (human grade, quote_fidelity, answer_support, grounded@0.85/0.4)
     for g in graded:
         k = key[g["id"]]
         grade = int(g["grade"])
@@ -110,7 +110,7 @@ def import_grades(run_dir: Path, grades_dir: Path, *, reground: bool = True) -> 
         r = next(x for x in runs[(k["model"], k["mode"], 0)] if x.case_id == k["section"])
         gr = r.output["grounding"][int(k["q_idx"])]
         pairs.append((grade, gr["quote_fidelity"], gr["answer_support"],
-                      float(gr["quote_fidelity"] >= 0.9 and gr["answer_support"] >= 0.5)))
+                      float(gr["quote_fidelity"] >= 0.85 and gr["answer_support"] >= 0.4)))
 
     lines = ["# Hand grades", "Human score scaled to [0, 1]: (grade - 1) / 2.", "",
              "| model | mode | n | mean grade (1-3) |", "|---|---|---|---|"]
@@ -125,7 +125,7 @@ def import_grades(run_dir: Path, grades_dir: Path, *, reground: bool = True) -> 
     hg = [p[0] for p in pairs]
     lines += ["", "## Does the lexical metric track human judgment? (Spearman, all graded rows)",
               "", "| metric | rho |", "|---|---|"]
-    for name, i in [("quote_fidelity", 1), ("answer_support", 2), ("grounded@0.9/0.5", 3)]:
+    for name, i in [("quote_fidelity", 1), ("answer_support", 2), ("grounded@0.85/0.4", 3)]:
         lines.append(f"| {name} | {spearman(hg, [p[i] for p in pairs]):.2f} |")
     md = "\n".join(lines)
     (grades_dir / "grades_report.md").write_text(md, encoding="utf-8")

@@ -30,7 +30,7 @@ from studyqa.prompt import PROMPT_VERSION
 
 MODELS = ["llama3.2:3b", "qwen2.5:3b", "phi3:mini"]
 MODES = {"constrained": True, "json": False}
-TAU_QUOTE, TAU_ANSWER = 0.9, 0.5  # provisional; calibrated on the smoke run
+TAU_QUOTE, TAU_ANSWER = 0.85, 0.4  # frozen 2026-11-25 from the smoke run; see docs/LOG.md
 
 
 def model_slug(model: str) -> str:
