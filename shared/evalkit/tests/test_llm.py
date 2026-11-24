@@ -75,3 +75,30 @@ def test_structured_gives_up_with_metadata():
         llm.structured([{"role": "user", "content": "x"}], Pair, retries=1)
     assert exc.value.attempts == 2
     assert len(exc.value.errors) == 2 and len(exc.value.responses) == 2
+
+
+def test_num_ctx_and_keep_alive_are_sent():
+    seen: list[dict] = []
+    llm = Ollama("m", num_ctx=8192, keep_alive=0, transport=fake_ollama(["hi"], seen))
+    r = llm.chat([{"role": "user", "content": "x"}])
+    assert seen[0]["options"]["num_ctx"] == 8192
+    assert seen[0]["keep_alive"] == 0
+    assert r.num_ctx == 8192
+    assert r.ctx_fraction == (120 + 50) / 8192
+
+
+def test_num_ctx_default_is_explicit():
+    seen: list[dict] = []
+    Ollama("m", transport=fake_ollama(["hi"], seen)).chat([{"role": "user", "content": "x"}])
+    assert seen[0]["options"]["num_ctx"] == 4096
+
+
+def test_unload_posts_keep_alive_zero():
+    seen: list[tuple[str, dict]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append((request.url.path, json.loads(request.content)))
+        return httpx.Response(200, json={})
+
+    Ollama("m", transport=httpx.MockTransport(handler)).unload()
+    assert seen == [("/api/generate", {"model": "m", "keep_alive": 0})]

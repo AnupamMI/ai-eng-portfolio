@@ -23,16 +23,26 @@ class ChatResponse(BaseModel):
     prompt_eval_duration_s: float = 0.0
     load_duration_s: float = 0.0
     total_duration_s: float = 0.0
+    num_ctx: int | None = None  # context window the request ran with
 
     @property
     def tokens_per_s(self) -> float:
         """Decode speed, excluding model load and prompt processing."""
         return self.eval_count / self.eval_duration_s if self.eval_duration_s else 0.0
 
+    @property
+    def ctx_fraction(self) -> float | None:
+        """Share of the context window used. Near 1.0 means Ollama may have
+        silently truncated the prompt; callers should treat that as a failure."""
+        if not self.num_ctx:
+            return None
+        return (self.prompt_eval_count + self.eval_count) / self.num_ctx
+
     @classmethod
-    def from_ollama(cls, data: dict) -> ChatResponse:
+    def from_ollama(cls, data: dict, *, num_ctx: int | None = None) -> ChatResponse:
         ns = 1e9
         return cls(
+            num_ctx=num_ctx,
             content=data["message"]["content"],
             eval_count=data.get("eval_count", 0),
             eval_duration_s=data.get("eval_duration", 0) / ns,
@@ -69,21 +79,32 @@ class StructuredOutputError(Exception):
 
 class Ollama:
     def __init__(self, model: str, *, url: str = DEFAULT_URL, temperature: float = 0.0,
-                 timeout: float = 120.0, seed: int = 0,
+                 timeout: float = 120.0, seed: int = 0, num_ctx: int = 4096,
+                 keep_alive: str | int = "5m",
                  transport: httpx.BaseTransport | None = None):
+        """`num_ctx` is always sent explicitly: Ollama's default differs across
+        versions and over-long prompts are truncated without an error.
+        `keep_alive` controls how long the model stays loaded (0 = unload now)."""
         self.model = model
-        self.options = {"temperature": temperature, "seed": seed}
+        self.num_ctx = num_ctx
+        self.keep_alive = keep_alive
+        self.options = {"temperature": temperature, "seed": seed, "num_ctx": num_ctx}
         # `transport` lets tests inject httpx.MockTransport instead of a live server.
         self._http = httpx.Client(base_url=url, timeout=timeout, transport=transport)
 
     def chat(self, messages: list[dict], *, format: dict | str | None = None) -> ChatResponse:
         body = {"model": self.model, "messages": messages, "stream": False,
-                "options": self.options}
+                "options": self.options, "keep_alive": self.keep_alive}
         if format is not None:
             body["format"] = format
         resp = self._http.post("/api/chat", json=body)
         resp.raise_for_status()
-        return ChatResponse.from_ollama(resp.json())
+        return ChatResponse.from_ollama(resp.json(), num_ctx=self.num_ctx)
+
+    def unload(self) -> None:
+        """Evict the model from memory (used between benchmark runs)."""
+        self._http.post("/api/generate", json={"model": self.model, "keep_alive": 0}
+                        ).raise_for_status()
 
     def structured(self, messages: list[dict], schema: type[T], *,
                    retries: int = 1) -> StructuredResult[T]:
