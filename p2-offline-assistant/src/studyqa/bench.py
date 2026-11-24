@@ -76,7 +76,11 @@ def _meta(args, cases_path: Path) -> dict:
     except httpx.HTTPError:
         version = None
     battery = psutil.sensors_battery() if hasattr(psutil, "sensors_battery") else None
+    vm = psutil.virtual_memory()
     return {
+        "system_ram_at_start_mb": {"total": round(vm.total / 2**20),
+                                   "used": round(vm.used / 2**20),
+                                   "available": round(vm.available / 2**20)},
         "started": dt.datetime.now().isoformat(timespec="seconds"),
         "git_commit": sh("git", "rev-parse", "--short", "HEAD"),
         "git_dirty": bool(sh("git", "status", "--porcelain", "--untracked-files=no")),
@@ -98,11 +102,18 @@ def bench(args) -> None:
     cases = load_cases(args.cases)
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
+    log_file = open(out_dir / "log.txt", "a", encoding="utf-8")
+
+    def log(msg: str) -> None:  # console + log.txt, flushed so progress is visible live
+        print(msg, flush=True)
+        log_file.write(msg + "\n")
+        log_file.flush()
+
     meta = _meta(args, Path(args.cases))
     if meta["on_battery"]:
-        print("WARNING: on battery power; timings will be throttled and noisy")
+        log("WARNING: on battery power; timings will be throttled and noisy")
     if meta["git_dirty"]:
-        print("WARNING: uncommitted changes; results may not match git_commit")
+        log("WARNING: uncommitted changes; results may not match git_commit")
 
     for p in range(args.passes):
         order = args.models[p % len(args.models):] + args.models[:p % len(args.models)]
@@ -112,8 +123,11 @@ def bench(args) -> None:
             for m in args.models:  # nothing else resident while we measure
                 Ollama(m, url=args.url).unload()
             results: dict[str, list[Result]] = {mode: [] for mode in args.modes}
+            avail = round(psutil.virtual_memory().available / 2**20)
+            log(f"[pass {p}] {model}: system RAM available before load {avail} MB")
             with MemProbe() as probe:
                 llm.chat([{"role": "user", "content": "Reply with OK."}])  # warm-up
+                probe.mark("loaded")
                 for i, case in enumerate(cases):
                     modes = args.modes if i % 2 == 0 else list(reversed(args.modes))
                     for mode in modes:
@@ -124,21 +138,24 @@ def bench(args) -> None:
                         tps = (o.get("responses") or [{}])[0]
                         tps = (tps.get("eval_count", 0) / tps["eval_duration_s"]
                                if tps.get("eval_duration_s") else 0)
-                        print(f"[pass {p}] {model:12} {mode:11} {case.id[:55]:55} "
-                              f"valid={o.get('valid')} att={o.get('attempts')} "
-                              f"grounded={r.scores['grounded']:.2f} {tps:.1f}tok/s "
-                              f"{r.latency_s:.0f}s {'ERR ' + r.error if r.error else ''}",
-                              flush=True)
+                        reasons = ",".join(x.get("done_reason") or "?"
+                                           for x in o.get("responses", []))
+                        log(f"[pass {p}] {model:12} {mode:11} {case.id[:55]:55} "
+                            f"valid={o.get('valid')} att={o.get('attempts')} [{reasons}] "
+                            f"grounded={r.scores['grounded']:.2f} {tps:.1f}tok/s "
+                            f"{r.latency_s:.0f}s {'ERR ' + r.error if r.error else ''}")
             llm.unload()
             meta["memory"][f"{model}|pass{p}"] = {
-                "baseline_mb": round(probe.baseline_mb), "peak_mb": round(probe.peak_mb),
-                "peak_delta_mb": round(probe.peak_delta_mb), "samples": probe.samples}
+                **probe.phases(), "system_available_before_mb": avail, "samples": probe.samples}
+            with open(out_dir / f"mem_{model_slug(model)}_p{p}.csv", "w", encoding="utf-8") as f:
+                f.write("second,mb\n" + "".join(f"{s},{v}\n" for s, v in probe.series_1hz()))
             for mode, rs in results.items():
                 save_results(rs, out_dir / f"{model_slug(model)}__{mode}__p{p}.jsonl")
             (out_dir / "meta.json").write_text(json.dumps(meta, indent=2))
     meta["finished"] = dt.datetime.now().isoformat(timespec="seconds")
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=2))
-    print(f"done -> {out_dir}")
+    log(f"done -> {out_dir}")
+    log_file.close()
 
 
 def main(argv: list[str] | None = None) -> None:
