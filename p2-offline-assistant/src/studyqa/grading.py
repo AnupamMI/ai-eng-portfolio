@@ -49,7 +49,7 @@ def spearman(x: list[float], y: list[float]) -> float:
 
 
 def export(run_dir: Path, cases_path: Path, out: Path, n: int, seed: int) -> None:
-    runs = load_run(run_dir)
+    runs = load_run(run_dir, reground=False)  # sampling uses validity only
     sections = {c.id: c.input for c in load_cases(cases_path)}
     rng = random.Random(seed)
     rows = []
@@ -89,8 +89,8 @@ def export(run_dir: Path, cases_path: Path, out: Path, n: int, seed: int) -> Non
           f"(key in key.csv; don't open it until grading is done)")
 
 
-def import_grades(run_dir: Path, grades_dir: Path) -> str:
-    runs = load_run(run_dir)
+def import_grades(run_dir: Path, grades_dir: Path, *, reground: bool = True) -> str:
+    runs = load_run(run_dir, reground=reground)
     with open(grades_dir / "key.csv", encoding="utf-8-sig") as f:
         key = {r["id"]: r for r in csv.DictReader(f)}
     with open(grades_dir / "to_grade.csv", encoding="utf-8-sig") as f:

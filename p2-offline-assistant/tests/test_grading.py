@@ -1,4 +1,4 @@
-import csv
+﻿import csv
 import json
 
 import pytest
@@ -51,7 +51,7 @@ def test_import_requires_all_grades_then_reports(run_dir, tmp_path):
     export(run, cases, out, n=3, seed=0)
     rows = list(csv.DictReader(open(out / "to_grade.csv", encoding="utf-8")))
     with pytest.raises(ValueError, match="without a 1-3 grade"):
-        import_grades(run, out)
+        import_grades(run, out, reground=False)
     key = {k["id"]: k for k in csv.DictReader(open(out / "key.csv", encoding="utf-8"))}
     for r in rows:
         r["grade"] = "3" if key[r["id"]]["mode"] == "constrained" else "1"
@@ -59,7 +59,7 @@ def test_import_requires_all_grades_then_reports(run_dir, tmp_path):
         w = csv.DictWriter(f, fieldnames=list(rows[0]))
         w.writeheader()
         w.writerows(rows)
-    md = import_grades(run, out)
+    md = import_grades(run, out, reground=False)
     assert "| a-3b | constrained | 3 | 3.00 |" in md and "| a-3b | json | 3 | 1.00 |" in md
     assert "| human | 3 | 0.000 | 1.000 | +1.000 |" in md
 

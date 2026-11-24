@@ -27,10 +27,19 @@ very was we were what when where which while who whom why will with would you yo
 """.split())
 
 TOKEN = re.compile(r"[a-z0-9]+")
+MD_LINK = re.compile(r"\[([^\]]*)\]\([^)\s]*(?:\s+\"[^\"]*\")?\)")  # [text](url "title")
+URL = re.compile(r"<?https?://[^\s>)]+>?")
+
+
+def strip_links(text: str) -> str:
+    """Keep link text, drop link targets and bare URLs. Without this a verbatim
+    quote of '[`WeakRef`](/en-US/docs/...)' text scores < 1 against a source whose
+    URL tokens the model did not copy (or vice versa)."""
+    return URL.sub(" ", MD_LINK.sub(r"\1", text))
 
 
 def tokens(text: str) -> list[str]:
-    return TOKEN.findall(text.lower())
+    return TOKEN.findall(strip_links(text).lower())
 
 
 def _stem(t: str) -> str:

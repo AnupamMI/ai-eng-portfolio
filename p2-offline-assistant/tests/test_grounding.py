@@ -1,6 +1,7 @@
 import pytest
 
-from studyqa.grounding import QuestionGrounding, content_words, ground, quote_fidelity, support
+from studyqa.grounding import (QuestionGrounding, content_words, ground, quote_fidelity, support,
+                               tokens)
 from studyqa.schema import QuestionSet
 
 SECTION = ("A **closure** is the combination of a function bundled together with references "
@@ -11,6 +12,16 @@ SECTION = ("A **closure** is the combination of a function bundled together with
 def test_verbatim_quote_ignoring_markdown_and_case():
     assert quote_fidelity("A closure is the combination of a function bundled together",
                           SECTION) == 1.0
+
+
+def test_link_targets_do_not_affect_fidelity():
+    src = ("To check it, use the [`hasOwnProperty`](/en-US/docs/Web/Object/hasOwnProperty) "
+           "or [`Object.hasOwn()`](/en-US/docs/Web/Object/hasOwn \"title\") methods. "
+           "See <https://example.com/x> or https://example.com/y.")
+    assert quote_fidelity("use the `hasOwnProperty` or `Object.hasOwn()` methods", src) == 1.0
+    assert quote_fidelity("use the [`hasOwnProperty`](/other/url) or `Object.hasOwn()` methods",
+                          src) == 1.0
+    assert "example" not in tokens(src)
 
 
 def test_near_verbatim_quote_scores_high_but_below_one():
