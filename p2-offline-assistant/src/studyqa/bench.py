@@ -85,7 +85,8 @@ def _meta(args, cases_path: Path) -> dict:
         "cases_file": str(cases_path),
         "cases_sha256": hashlib.sha256(cases_path.read_bytes()).hexdigest()[:16],
         "models": args.models, "modes": args.modes, "passes": args.passes,
-        "retries": args.retries, "num_ctx": args.num_ctx, "seed": 0, "temperature": 0.0,
+        "retries": args.retries, "num_ctx": args.num_ctx, "num_predict": args.num_predict,
+        "seed": 0, "temperature": 0.0,
         "tau_quote": TAU_QUOTE, "tau_answer": TAU_ANSWER,
         "cpu": platform.processor(), "ram_gb": round(psutil.virtual_memory().total / 2**30, 1),
         "on_battery": (battery is not None and not battery.power_plugged),
@@ -106,8 +107,8 @@ def bench(args) -> None:
     for p in range(args.passes):
         order = args.models[p % len(args.models):] + args.models[:p % len(args.models)]
         for model in order:
-            llm = Ollama(model, url=args.url, num_ctx=args.num_ctx, keep_alive="10m",
-                         timeout=600)
+            llm = Ollama(model, url=args.url, num_ctx=args.num_ctx,
+                         num_predict=args.num_predict, keep_alive="10m", timeout=600)
             for m in args.models:  # nothing else resident while we measure
                 Ollama(m, url=args.url).unload()
             results: dict[str, list[Result]] = {mode: [] for mode in args.modes}
@@ -150,6 +151,9 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--passes", type=int, default=1)
     ap.add_argument("--retries", type=int, default=2)
     ap.add_argument("--num-ctx", type=int, default=4096)
+    # 1536: largest valid output in the smoke run was 1043 tokens (phi3); largest
+    # prompt 2024 tokens, and 2024 + 1536 < 4096 so a capped call cannot context-shift.
+    ap.add_argument("--num-predict", type=int, default=1536)
     ap.add_argument("--url", default="http://localhost:11434")
     bench(ap.parse_args(argv))
 

@@ -1,7 +1,7 @@
 import json
 
 from evalkit import Result, save_results
-from studyqa.report import grounded_rate, report, rescore
+from studyqa.report import failure_kind, grounded_rate, report, rescore
 
 Q = {"question": "q?", "answer": "a", "difficulty": "easy", "source_quote": "quote here"}
 
@@ -34,7 +34,19 @@ def test_report_end_to_end(tmp_path):
     (tmp_path / "meta.json").write_text(json.dumps(
         {"memory": {"m:3b|pass0": {"peak_delta_mb": 2100}}, "git_commit": "abc"}))
     md = report(tmp_path, 0.9, 0.5)
-    assert "| m-3b | constrained | 10 | 1.00 | 1.00 | 0.00 | 1.00 |" in md
-    assert "| 2100 |" in md and "15.0" in md  # RAM and tok/s columns
+    assert "| m-3b | constrained | 10 | 1.00 | 1.00 | 0 | 0 | 0 | 0.00 | 0 | 15.0 |" in md
+    assert "| m-3b | constrained | 1.00 | 1.00 |" in md  # groundedness table
     assert "| grounded | 10 | 0.000 | 1.000 | +1.000 |" in md  # paired mode comparison
     assert (tmp_path / "questions.csv").read_text().count("\n") == 1 + 100
+
+
+def test_failure_kinds():
+    ok = _result("a", True, [1] * 5, [1] * 5)
+    schema = _result("b", False, [], [], attempts=3)
+    runaway = _result("c", False, [], [], attempts=3)
+    runaway.output["responses"] = [{"eval_count": 1536, "eval_duration_s": 9,
+                                    "done_reason": "length"}]
+    err = Result(case_id="d", latency_s=600, error="ReadTimeout: timed out",
+                 scores={"valid_first_try": 0, "valid": 0, "grounded": 0})
+    assert [failure_kind(r) for r in (ok, schema, runaway, err)] == [
+        None, "schema", "runaway", "error"]

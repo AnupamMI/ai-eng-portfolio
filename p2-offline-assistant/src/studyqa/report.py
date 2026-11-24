@@ -57,31 +57,59 @@ def _med(xs: list[float]) -> float:
     return statistics.median(xs) if xs else float("nan")
 
 
-def summary_table(runs, meta, tq, ta) -> str:
-    rows = ["| model | mode | n | valid 1st try | valid | mean retries | grounded (all) "
-            "| grounded (valid only) | quote fid. p50 | ans. support p50 | tok/s p50 "
-            "| peak RAM Δ MB | ctx overflow |",
-            "|" + "---|" * 13]
+def failure_kind(r: Result) -> str | None:
+    """None if valid. Otherwise: 'error' (HTTP error/timeout: no output at all),
+    'runaway' (an attempt hit num_predict), or 'schema' (invalid, not truncated)."""
+    if r.error:
+        return "error"
+    if r.output["valid"]:
+        return None
+    if any(resp.get("done_reason") == "length" for resp in r.output["responses"]):
+        return "runaway"
+    return "schema"
+
+
+def _mem(meta: dict, model: str) -> dict:
+    vals = [v for k, v in meta.get("memory", {}).items()
+            if k.split("|")[0].replace(":", "-") == model]
+    return vals[0] if vals else {}
+
+
+def reliability_table(runs, meta) -> str:
+    rows = ["| model | mode | n | valid 1st try | valid | schema fail | runaway | infra error "
+            "| mean retries | ctx overflow | tok/s p50 |",
+            "|" + "---|" * 11]
     for (model, mode, p), rs in sorted(runs.items()):
         if p != 0:
             continue  # quality is deterministic (temp 0, fixed seed); pass 0 is canonical
-        gs = _grounding(rs)
+        kinds = [failure_kind(r) for r in rs]
         all_tps = [t for (m2, mo2, _), rs2 in runs.items() if m2 == model and mo2 == mode
                    for t in _tok_s(rs2)]
-        mem = [v["peak_delta_mb"] for k, v in meta.get("memory", {}).items()
-               if k.split("|")[0].replace(":", "-") == model]
         rows.append(
             f"| {model} | {mode} | {len(rs)} "
             f"| {statistics.fmean(r.scores['valid_first_try'] for r in rs):.2f} "
             f"| {statistics.fmean(r.scores['valid'] for r in rs):.2f} "
+            f"| {kinds.count('schema')} | {kinds.count('runaway')} | {kinds.count('error')} "
             f"| {statistics.fmean(r.output['attempts'] - 1 for r in rs if r.output):.2f} "
+            f"| {sum(bool(r.output and r.output['ctx_overflow']) for r in rs)} "
+            f"| {_med(all_tps):.1f} |")
+    return "\n".join(rows)
+
+
+def groundedness_table(runs, tq, ta) -> str:
+    rows = ["| model | mode | grounded (all) | grounded (valid only) | quote fid. p50 "
+            "| ans. support p50 |",
+            "|" + "---|" * 6]
+    for (model, mode, p), rs in sorted(runs.items()):
+        if p != 0:
+            continue
+        gs = _grounding(rs)
+        rows.append(
+            f"| {model} | {mode} "
             f"| {grounded_rate(rs, tq, ta, end_to_end=True):.2f} "
             f"| {grounded_rate(rs, tq, ta, end_to_end=False):.2f} "
             f"| {_med([g['quote_fidelity'] for g in gs]):.2f} "
-            f"| {_med([g['answer_support'] for g in gs]):.2f} "
-            f"| {_med(all_tps):.1f} "
-            f"| {max(mem) if mem else 'n/a'} "
-            f"| {sum(bool(r.output and r.output['ctx_overflow']) for r in rs)} |")
+            f"| {_med([g['answer_support'] for g in gs]):.2f} |")
     return "\n".join(rows)
 
 
@@ -154,7 +182,9 @@ def report(run_dir: Path, tq: float, ta: float) -> str:
         f"num_ctx {meta.get('num_ctx')}, retries {meta.get('retries')}, "
         f"passes {meta.get('passes')}, on battery: {meta.get('on_battery')}. "
         f"Thresholds: tau_quote={tq}, tau_answer={ta}. {n_q} questions in questions.csv.",
-        "## Summary", summary_table(runs, meta, tq, ta),
+        f"num_predict {meta.get('num_predict')}.",
+        "## Reliability", reliability_table(runs, meta),
+        "## Groundedness", groundedness_table(runs, tq, ta),
         "## Decoding mode, paired by section (95% bootstrap CI)", mode_comparison(runs, tq, ta),
         "## Threshold sensitivity", sensitivity(runs, tq, ta),
     ])
