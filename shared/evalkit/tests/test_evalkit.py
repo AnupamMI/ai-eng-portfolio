@@ -77,4 +77,5 @@ def test_ollama_structured_output():
 
     llm = Ollama("qwen2.5:3b")
     out = llm.structured([{"role": "user", "content": "What is the capital of France?"}], Capital)
-    assert out.capital.lower() == "paris"
+    assert out.value.capital.lower() == "paris"
+    assert out.attempts >= 1 and out.responses[0].eval_count > 0
