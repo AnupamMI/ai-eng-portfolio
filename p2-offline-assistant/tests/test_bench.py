@@ -37,3 +37,21 @@ def test_scores_for_invalid_output():
     assert r.error is None  # a schema failure is a measured outcome, not a crash
     assert r.scores == {"valid_first_try": 0.0, "valid": 0.0, "grounded": 0.0}
     assert r.output["attempts"] == 3 and r.output["grounding"] == []
+
+
+def test_stall_dump_arms_and_always_cancels(monkeypatch):
+    import pytest
+    from studyqa import bench
+    calls = []
+    monkeypatch.setattr(bench.faulthandler, "dump_traceback_later",
+                        lambda s, repeat: calls.append(("arm", s, repeat)))
+    monkeypatch.setattr(bench.faulthandler, "cancel_dump_traceback_later",
+                        lambda: calls.append(("cancel",)))
+    with pytest.raises(RuntimeError):
+        with bench.stall_dump(900):
+            raise RuntimeError("generation failed")
+    assert calls == [("arm", 900, True), ("cancel",)]
+    calls.clear()
+    with bench.stall_dump(0):
+        pass
+    assert calls == []

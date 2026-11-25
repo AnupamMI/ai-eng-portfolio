@@ -12,7 +12,9 @@ Protocol (to keep CPU timing noise out of the comparisons):
 from __future__ import annotations
 
 import argparse
+import contextlib
 import datetime as dt
+import faulthandler
 import hashlib
 import json
 import platform
@@ -62,6 +64,19 @@ SCORERS = {
     "valid": lambda c, o: float(o["valid"]),
     "grounded": _grounded_rate,
 }
+
+
+@contextlib.contextmanager
+def stall_dump(seconds: float):
+    """Dump every thread's stack to stderr if the block runs longer than `seconds`
+    (repeating), so a hung generation shows where it is stuck. Does not kill it."""
+    if seconds > 0:
+        faulthandler.dump_traceback_later(seconds, repeat=True)
+    try:
+        yield
+    finally:
+        if seconds > 0:
+            faulthandler.cancel_dump_traceback_later()
 
 
 def _meta(args, cases_path: Path) -> dict:
@@ -132,7 +147,11 @@ def bench(args) -> None:
                     modes = args.modes if i % 2 == 0 else list(reversed(args.modes))
                     for mode in modes:
                         system = make_system(llm, MODES[mode], args.retries)
-                        (r,) = run(system, [case], SCORERS)
+                        # a start line makes a slow section distinguishable from a dead process
+                        log(f"[pass {p}] {model:12} {mode:11} {case.id[:55]:55} start "
+                            f"{dt.datetime.now():%H:%M:%S}")
+                        with stall_dump(args.stall_dump_s):
+                            (r,) = run(system, [case], SCORERS)
                         results[mode].append(r)
                         o = r.output or {}
                         tps = (o.get("responses") or [{}])[0]
@@ -172,6 +191,9 @@ def main(argv: list[str] | None = None) -> None:
     # prompt 2024 tokens, and 2024 + 1536 < 4096 so a capped call cannot context-shift.
     ap.add_argument("--num-predict", type=int, default=1536)
     ap.add_argument("--url", default="http://localhost:11434")
+    # 900 s: worst legitimate generation is 3 capped attempts (~3 x 175 s for phi3)
+    ap.add_argument("--stall-dump-s", type=float, default=900,
+                    help="dump stacks to stderr if one generation exceeds this (0 = off)")
     bench(ap.parse_args(argv))
 
 
