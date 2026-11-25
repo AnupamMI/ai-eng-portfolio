@@ -145,3 +145,22 @@ old a12 had 3 readings.
   plus/minus tolerance, but it behaves like plus/minus 0.005 except at a rounding boundary. c22 is
   8.2855 (-> 8.29) on seed 0 and 8.8889 (-> 8.89) on seed 1, far from a boundary compared with
   float error. A model that rounds to 1 decimal or returns a fraction (0.0829) is scored wrong.
+
+## 2026-11-26: FREEZE of the test set, dev set, prompt and generator (before any model run)
+Git blob hashes at commit 7d03863. Check them with
+`git rev-parse HEAD:p1-text2sql/<path>` or `git hash-object p1-text2sql/<path>`; blob hashes
+are computed after line-ending normalisation, so they are the same on Windows and Linux.
+
+| file | git blob |
+|---|---|
+| `testset/questions.jsonl` (test: 25 clear + 25 ambiguous, 76 pairs) | `bc0274de052e9fe10c8a25a14130019804438499` |
+| `testset/dev.jsonl` (dev: 5 clear + 5 ambiguous, 15 pairs) | `fd02051206a4257bb03ff35f4a5ae1a8a7cb42dd` |
+| `src/text2sql/prompt.py` (rules, schema text, glossary) | `1f34cf2ec86c896f59d2edaf9bee5edaef4f967a` |
+| `src/text2sql/db.py` (generator; seeds 0 and 1) | `c089cdca8c18843b1878d9d8d5be52b62414464c` |
+| `src/text2sql/execute.py` (executor and comparator; added so the scoring rules are frozen too) | `5a6811b7098e7263adee72ebb8a09fe683a00a05` |
+
+**Rule from here on:** none of these files changes while results are being measured. If one has
+to change (for example a gold-SQL bug found in the audit), the change gets its own LOG entry
+saying what, why and which results it invalidates, plus new hashes, and the affected runs are
+repeated. The test set is never edited to match model output. Prompt iteration (few-shot
+fallback, stage 2 gate) uses dev only, and a new prompt is a new, logged file version.
