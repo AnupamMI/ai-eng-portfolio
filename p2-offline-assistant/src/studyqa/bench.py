@@ -25,7 +25,7 @@ import httpx
 import psutil
 
 from evalkit import Case, Ollama, Result, load_cases, run, save_results
-from studyqa.generate import generate
+from studyqa.generate import NUM_CTX, NUM_PREDICT, RETRIES, generate
 from studyqa.grounding import ground
 from studyqa.memprobe import MemProbe
 from studyqa.prompt import PROMPT_VERSION
@@ -185,11 +185,9 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--models", nargs="+", default=MODELS)
     ap.add_argument("--modes", nargs="+", default=list(MODES), choices=list(MODES))
     ap.add_argument("--passes", type=int, default=1)
-    ap.add_argument("--retries", type=int, default=2)
-    ap.add_argument("--num-ctx", type=int, default=4096)
-    # 1536: largest valid output in the smoke run was 1043 tokens (phi3); largest
-    # prompt 2024 tokens, and 2024 + 1536 < 4096 so a capped call cannot context-shift.
-    ap.add_argument("--num-predict", type=int, default=1536)
+    ap.add_argument("--retries", type=int, default=RETRIES)
+    ap.add_argument("--num-ctx", type=int, default=NUM_CTX)
+    ap.add_argument("--num-predict", type=int, default=NUM_PREDICT)  # rationale: generate.py
     ap.add_argument("--url", default="http://localhost:11434")
     # 900 s: worst legitimate generation is 3 capped attempts (~3 x 175 s for phi3)
     ap.add_argument("--stall-dump-s", type=float, default=900,

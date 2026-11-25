@@ -10,6 +10,14 @@ from studyqa.schema import QuestionSet
 
 CTX_LIMIT = 0.95  # above this share of num_ctx, assume the prompt may be truncated
 
+# Generation settings shared by the benchmark and the `ask` tool, so the tool runs
+# exactly what was measured. NUM_PREDICT: largest valid output in the smoke run was
+# 1043 tokens (phi3); largest prompt 2024 tokens, and 2024 + 1536 < 4096, so a capped
+# call cannot trigger a context shift (docs/LOG.md).
+NUM_CTX = 4096
+NUM_PREDICT = 1536
+RETRIES = 2
+
 
 class Generation(BaseModel):
     questions: QuestionSet | None  # None when every attempt failed validation
@@ -27,7 +35,8 @@ class Generation(BaseModel):
         return any((r.ctx_fraction or 0) > CTX_LIMIT for r in self.responses)
 
 
-def generate(llm: Ollama, section: dict, *, constrained: bool, retries: int = 2) -> Generation:
+def generate(llm: Ollama, section: dict, *, constrained: bool,
+             retries: int = RETRIES) -> Generation:
     """Never raises on invalid output: failures are data, not exceptions."""
     try:
         r = llm.structured(build_messages(section), QuestionSet, retries=retries,
