@@ -95,6 +95,49 @@ def export(run_dirs: list[Path], cases_path: Path, out: Path, n: int, seed: int,
           f"(key in {key_path}; don't open it until grading is done)")
 
 
+def subsample(blank_sheet: Path, key_path: Path, cases_path: Path, out: Path,
+              out_key: Path, *, sections_per_model: int = 5, seed: int = 1) -> None:
+    """Draw a validation subset from an exported (BLANK) sheet: per model, N sections
+    with BOTH modes (so the subset stays paired), re-IDed h01.. and reshuffled. Rows come
+    from the blank export, so no earlier grader's grades or notes can leak in. The new
+    key has the same columns as export's plus `source_id`, so import works unchanged."""
+    with open(blank_sheet, encoding="utf-8-sig") as f:
+        sheet = {r["id"]: r for r in csv.DictReader(f)}
+    with open(key_path, encoding="utf-8-sig") as f:
+        key = list(csv.DictReader(f))
+    by_cell = {(k["model"], k["section"], k["mode"]): k for k in key}
+    rng = random.Random(seed)
+    picked = []
+    for model in sorted({k["model"] for k in key}):
+        secs = sorted({k["section"] for k in key if k["model"] == model
+                       and all((model, k["section"], m) in by_cell for m in MODES)})
+        for s in rng.sample(secs, sections_per_model):
+            picked += [by_cell[(model, s, m)] for m in MODES]
+    rng.shuffle(picked)
+    out.mkdir(parents=True, exist_ok=True)
+    with open(out / "to_grade.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["id", "section", "title", "question", "answer", "source_quote",
+                    "grade", "notes"])
+        for i, k in enumerate(picked, 1):
+            r = sheet[k["id"]]
+            w.writerow([f"h{i:02d}", r["section"], r["title"], r["question"], r["answer"],
+                        r["source_quote"], "", ""])
+    out_key.parent.mkdir(parents=True, exist_ok=True)
+    with open(out_key, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["id", "model", "mode", "section", "q_idx", "source_id"])
+        for i, k in enumerate(picked, 1):
+            w.writerow([f"h{i:02d}", k["model"], k["mode"], k["section"], k["q_idx"], k["id"]])
+    sections = {c.id: c.input for c in load_cases(cases_path)}
+    used = sorted({k["section"] for k in picked})
+    (out / "sections.md").write_text("\n\n".join(
+        f"## {cid}\n\n**{sections[cid]['title']}**\n\n{sections[cid]['text']}" for cid in used),
+        encoding="utf-8")
+    print(f"wrote {len(picked)} rows ({len(used)} sections) to {out / 'to_grade.csv'} "
+          f"(key in {out_key}; don't open it until grading is done)")
+
+
 def import_grades(run_dirs: list[Path], grades_dir: Path, *, grader: str, reground: bool = True,
                   key_path: Path | None = None, sheet: Path | None = None) -> str:
     """`grader` labels who produced the grades (e.g. "hand-graded", "LLM-graded (ChatGPT)") in the
@@ -162,8 +205,20 @@ def main(argv: list[str] | None = None) -> None:
     i.add_argument("--key", type=Path, help="key file path (default: GRADES/key.csv)")
     i.add_argument("--sheet", type=Path, help="graded CSV (default: GRADES/to_grade.csv)")
     i.add_argument("--grader", required=True, help='label for who graded, e.g. "hand-graded" or "LLM-graded (ChatGPT)"')
+    s = sub.add_parser("subsample", help="validation subset from a blank exported sheet")
+    s.add_argument("--from", dest="src", type=Path, required=True,
+                   help="folder of the original export (its blank to_grade.csv)")
+    s.add_argument("--cases", type=Path, required=True)
+    s.add_argument("--key", type=Path, required=True, help="the original export's key")
+    s.add_argument("--out", type=Path, required=True)
+    s.add_argument("--out-key", type=Path, required=True)
+    s.add_argument("--sections-per-model", type=int, default=5, help="x2 modes per model")
+    s.add_argument("--seed", type=int, default=1)
     a = ap.parse_args(argv)
-    if a.cmd == "export":
+    if a.cmd == "subsample":
+        subsample(a.src / "to_grade.csv", a.key, a.cases, a.out, a.out_key,
+                  sections_per_model=a.sections_per_model, seed=a.seed)
+    elif a.cmd == "export":
         export(a.run_dirs, a.cases, a.out, a.n, a.seed, key_path=a.key)
     else:
         print(import_grades(a.run_dirs, a.grades, grader=a.grader, key_path=a.key, sheet=a.sheet))

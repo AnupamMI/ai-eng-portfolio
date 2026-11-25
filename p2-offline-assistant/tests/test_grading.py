@@ -104,3 +104,26 @@ def test_import_reads_a_separate_graded_sheet_and_labels_the_grader(run_dir, tmp
     assert "track the grades (LLM-graded (ChatGPT))" in md
     assert (out / "grades_report_llm_graded__chatgpt.md").exists()
     assert (out / "to_grade.csv").read_text(encoding="utf-8") == blank  # blank untouched
+
+def test_subsample_is_paired_blind_and_ignores_earlier_grades(run_dir, tmp_path):
+    from studyqa.grading import subsample
+    run, cases = run_dir
+    out = tmp_path / "grading"
+    export(run, cases, out, n=3, seed=0)
+    # a graded copy exists, but subsample must read only the blank sheet
+    sub_out, sub_key = tmp_path / "human", tmp_path / "keys" / "human_key.csv"
+    subsample(out / "to_grade.csv", out / "key.csv", cases, sub_out, sub_key,
+              sections_per_model=2, seed=1)
+    rows = list(csv.DictReader(open(sub_out / "to_grade.csv", encoding="utf-8")))
+    key = list(csv.DictReader(open(sub_key, encoding="utf-8")))
+    assert len(rows) == 2 * 2 * 2 and all(r["grade"] == "" and r["notes"] == "" for r in rows)
+    assert [r["id"] for r in rows] == [f"h{i:02d}" for i in range(1, 9)]
+    for model in ["a-3b", "b-3b"]:
+        by_mode = {m: sorted(k["section"] for k in key if k["model"] == m_ and k["mode"] == m)
+                   for m_ in [model] for m in ["json", "constrained"]}
+        assert by_mode["json"] == by_mode["constrained"] and len(by_mode["json"]) == 2
+    orig = {r["id"]: r for r in csv.DictReader(open(out / "to_grade.csv", encoding="utf-8"))}
+    for r, k in zip(rows, key):
+        assert r["answer"] == orig[k["source_id"]]["answer"]  # same row as the source export
+    assert (sub_out / "sections.md").read_text(encoding="utf-8").count("\n## ") + 1 == len(
+        {k["section"] for k in key})
