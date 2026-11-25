@@ -60,6 +60,33 @@ def paired_bootstrap(
     return means[int(0.025 * iters)], means[int(0.975 * iters) - 1]
 
 
+def cluster_bootstrap(
+    before: list[float], after: list[float], clusters: list[str], *,
+    iters: int = 10_000, seed: int = 0,
+) -> tuple[float, float, float]:
+    """(mean(after - before), 95% CI low, high) for paired scores grouped in clusters.
+
+    Use when several scored items share one unit that is not independent, e.g. the
+    interpretations of one question: whole clusters are resampled with replacement, and the
+    difference is averaged over all items they contain (item-weighted, so the point estimate
+    equals the plain paired mean). With one item per cluster this is `paired_bootstrap`.
+    """
+    if not (len(before) == len(after) == len(clusters)) or not before:
+        raise ValueError("cluster_bootstrap needs equal-length, non-empty lists")
+    groups: dict[str, list[float]] = {}
+    for b, a, c in zip(before, after, clusters):
+        groups.setdefault(c, []).append(a - b)
+    units = [(sum(d), len(d)) for d in groups.values()]  # first-appearance order
+    rng = random.Random(seed)
+    means = []
+    for _ in range(iters):
+        draw = rng.choices(units, k=len(units))
+        means.append(sum(s for s, _ in draw) / sum(n for _, n in draw))
+    means.sort()
+    point = statistics.fmean(a - b for a, b in zip(after, before))
+    return point, means[int(0.025 * iters)], means[int(0.975 * iters) - 1]
+
+
 def bootstrap_diff(
     a: list[float], b: list[float], *, iters: int = 10_000, seed: int = 0
 ) -> tuple[float, float, float]:

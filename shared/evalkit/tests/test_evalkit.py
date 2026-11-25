@@ -125,3 +125,26 @@ def test_bootstrap_ci_covers_statistic_and_counts_undefined_resamples():
     f = lambda xs: float("nan") if len(set(xs)) < 2 else 1.0
     lo, hi, dropped = bootstrap_ci([0, 1], f, iters=1000)
     assert lo == hi == 1.0 and 300 < dropped < 700  # P(all same) = 1/2 for k=2
+
+
+def test_cluster_bootstrap_matches_paired_for_singletons_and_widens_for_clusters():
+    from evalkit import cluster_bootstrap
+    before = [0.0] * 30 + [1.0] * 10
+    after = [1.0] * 25 + [0.0] * 5 + [1.0] * 10
+    point, lo, hi = cluster_bootstrap(before, after, [f"q{i}" for i in range(40)])
+    assert (lo, hi) == paired_bootstrap(before, after)  # same draws when every cluster is 1 item
+    assert point == pytest.approx(25 / 40)
+    # Same 40 items, but in 10 questions of 4 perfectly correlated readings: fewer
+    # independent units, so the CI must be wider, while the point estimate is unchanged.
+    clusters = [f"q{i // 4}" for i in range(40)]
+    point_c, lo_c, hi_c = cluster_bootstrap(before, after, clusters)
+    assert point_c == point and (hi_c - lo_c) > 1.5 * (hi - lo)
+    with pytest.raises(ValueError):
+        cluster_bootstrap([1.0], [1.0, 0.0], ["a", "b"])
+
+
+def test_cluster_bootstrap_weights_items_not_clusters():
+    from evalkit import cluster_bootstrap
+    # Cluster "a" has 3 items with diff 1, "b" has 1 item with diff 0: item mean 0.75.
+    point, lo, hi = cluster_bootstrap([0, 0, 0, 0], [1, 1, 1, 0], ["a", "a", "a", "b"], iters=2000)
+    assert point == 0.75 and lo == 0.0 and hi == 1.0
