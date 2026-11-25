@@ -1,0 +1,250 @@
+session 2026-11-26T00:43:25 commit 97734d6: 4 models x 30 clear questions (dev, test)
+qwen2.5:3b: 30 to do (0 done); RAM available before load 7524 MB
+qwen2.5:3b: warm-up 14s (load 6s, prompt 661 tokens)
+qwen2.5:3b        dev/dc1 start 00:43:44 (1/30)
+qwen2.5:3b        dev/dc1 lenient=1 strict=1 att=2 [length,stop] type=- prompt=[660, 689] 16.7tok/s 17s
+qwen2.5:3b        dev/dc2 start 00:44:01 (2/30)
+qwen2.5:3b        dev/dc2 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[664] 16.5tok/s 8s
+qwen2.5:3b        dev/dc3 start 00:44:09 (3/30)
+qwen2.5:3b        dev/dc3 lenient=1 strict=1 att=1 [stop] type=- prompt=[670] 16.2tok/s 2s
+qwen2.5:3b        dev/dc4 start 00:44:11 (4/30)
+qwen2.5:3b        dev/dc4 lenient=1 strict=1 att=1 [stop] type=- prompt=[667] 16.2tok/s 2s
+qwen2.5:3b        dev/dc5 start 00:44:12 (5/30)
+qwen2.5:3b        dev/dc5 lenient=1 strict=1 att=1 [stop] type=- prompt=[673] 15.8tok/s 4s
+qwen2.5:3b        test/c01 start 00:44:17 (6/30)
+qwen2.5:3b        test/c01 lenient=0 strict=0 att=1 [stop] type=schema prompt=[667] 15.7tok/s 8s
+qwen2.5:3b        test/c02 start 00:44:25 (7/30)
+qwen2.5:3b        test/c02 lenient=1 strict=1 att=1 [stop] type=- prompt=[667] 15.9tok/s 4s
+qwen2.5:3b        test/c03 start 00:44:29 (8/30)
+qwen2.5:3b        test/c03 lenient=0 strict=0 att=1 [stop] type=schema prompt=[664] 15.8tok/s 9s
+qwen2.5:3b        test/c04 start 00:44:38 (9/30)
+qwen2.5:3b        test/c04 lenient=1 strict=1 att=1 [stop] type=- prompt=[678] 16.0tok/s 3s
+qwen2.5:3b        test/c05 start 00:44:41 (10/30)
+qwen2.5:3b        test/c05 lenient=1 strict=1 att=1 [stop] type=- prompt=[663] 15.8tok/s 2s
+qwen2.5:3b        test/c06 start 00:44:43 (11/30)
+qwen2.5:3b        test/c06 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[674] 15.7tok/s 8s
+qwen2.5:3b        test/c07 start 00:44:52 (12/30)
+qwen2.5:3b        test/c07 lenient=1 strict=1 att=1 [stop] type=- prompt=[669] 15.2tok/s 4s
+qwen2.5:3b        test/c08 start 00:44:56 (13/30)
+qwen2.5:3b        test/c08 lenient=0 strict=0 att=1 [stop] type=schema prompt=[692] 15.9tok/s 8s
+qwen2.5:3b        test/c09 start 00:45:04 (14/30)
+qwen2.5:3b        test/c09 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[663] 15.8tok/s 5s
+qwen2.5:3b        test/c10 start 00:45:09 (15/30)
+qwen2.5:3b        test/c10 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[668] 16.0tok/s 4s
+qwen2.5:3b        test/c11 start 00:45:13 (16/30)
+qwen2.5:3b        test/c11 lenient=0 strict=0 att=1 [stop] type=schema prompt=[665] 15.9tok/s 8s
+qwen2.5:3b        test/c12 start 00:45:20 (17/30)
+qwen2.5:3b        test/c12 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[673] 15.2tok/s 4s
+qwen2.5:3b        test/c13 start 00:45:24 (18/30)
+qwen2.5:3b        test/c13 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[674] 15.9tok/s 7s
+qwen2.5:3b        test/c14 start 00:45:31 (19/30)
+qwen2.5:3b        test/c14 lenient=1 strict=1 att=1 [stop] type=- prompt=[678] 15.7tok/s 3s
+qwen2.5:3b        test/c15 start 00:45:34 (20/30)
+qwen2.5:3b        test/c15 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[685] 12.0tok/s 8s
+qwen2.5:3b        test/c16 start 00:45:42 (21/30)
+qwen2.5:3b        test/c16 lenient=1 strict=1 att=1 [stop] type=- prompt=[668] 13.8tok/s 4s
+qwen2.5:3b        test/c17 start 00:45:46 (22/30)
+qwen2.5:3b        test/c17 lenient=1 strict=1 att=1 [stop] type=- prompt=[671] 13.3tok/s 3s
+qwen2.5:3b        test/c18 start 00:45:49 (23/30)
+qwen2.5:3b        test/c18 lenient=1 strict=1 att=1 [stop] type=- prompt=[677] 13.9tok/s 5s
+qwen2.5:3b        test/c19 start 00:45:54 (24/30)
+qwen2.5:3b        test/c19 lenient=0 strict=0 att=1 [stop] type=schema prompt=[666] 13.9tok/s 5s
+qwen2.5:3b        test/c20 start 00:45:59 (25/30)
+qwen2.5:3b        test/c20 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[675] 12.1tok/s 10s
+qwen2.5:3b        test/c21 start 00:46:09 (26/30)
+qwen2.5:3b        test/c21 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[670] 17.2tok/s 6s
+qwen2.5:3b        test/c22 start 00:46:14 (27/30)
+qwen2.5:3b        test/c22 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[666] 17.0tok/s 4s
+qwen2.5:3b        test/c23 start 00:46:19 (28/30)
+qwen2.5:3b        test/c23 lenient=0 strict=0 att=1 [stop] type=schema prompt=[676] 17.3tok/s 5s
+qwen2.5:3b        test/c24 start 00:46:24 (29/30)
+qwen2.5:3b        test/c24 lenient=1 strict=1 att=1 [stop] type=- prompt=[680] 16.3tok/s 3s
+qwen2.5:3b        test/c25 start 00:46:27 (30/30)
+qwen2.5:3b        test/c25 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[684] 17.3tok/s 7s
+llama3.2:3b: 30 to do (0 done); RAM available before load 7815 MB
+llama3.2:3b: warm-up 18s (load 5s, prompt 649 tokens)
+llama3.2:3b       dev/dc1 start 00:46:56 (1/30)
+llama3.2:3b       dev/dc1 lenient=1 strict=1 att=1 [stop] type=- prompt=[648] 12.4tok/s 2s
+llama3.2:3b       dev/dc2 start 00:46:58 (2/30)
+llama3.2:3b       dev/dc2 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[650] 11.1tok/s 9s
+llama3.2:3b       dev/dc3 start 00:47:07 (3/30)
+llama3.2:3b       dev/dc3 lenient=1 strict=1 att=1 [stop] type=- prompt=[658] 11.8tok/s 3s
+llama3.2:3b       dev/dc4 start 00:47:10 (4/30)
+llama3.2:3b       dev/dc4 lenient=1 strict=1 att=1 [stop] type=- prompt=[655] 14.7tok/s 2s
+llama3.2:3b       dev/dc5 start 00:47:12 (5/30)
+llama3.2:3b       dev/dc5 lenient=1 strict=1 att=1 [stop] type=- prompt=[659] 16.0tok/s 5s
+llama3.2:3b       test/c01 start 00:47:17 (6/30)
+llama3.2:3b       test/c01 lenient=0 strict=0 att=1 [stop] type=schema prompt=[653] 16.2tok/s 6s
+llama3.2:3b       test/c02 start 00:47:23 (7/30)
+llama3.2:3b       test/c02 lenient=0 strict=0 att=1 [stop] type=schema prompt=[653] 16.4tok/s 4s
+llama3.2:3b       test/c03 start 00:47:27 (8/30)
+llama3.2:3b       test/c03 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[650] 16.6tok/s 6s
+llama3.2:3b       test/c04 start 00:47:33 (9/30)
+llama3.2:3b       test/c04 lenient=1 strict=1 att=1 [stop] type=- prompt=[665] 16.9tok/s 2s
+llama3.2:3b       test/c05 start 00:47:35 (10/30)
+llama3.2:3b       test/c05 lenient=1 strict=1 att=1 [stop] type=- prompt=[651] 16.8tok/s 3s
+llama3.2:3b       test/c06 start 00:47:38 (11/30)
+llama3.2:3b       test/c06 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[660] 16.6tok/s 5s
+llama3.2:3b       test/c07 start 00:47:43 (12/30)
+llama3.2:3b       test/c07 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[657] 16.6tok/s 4s
+llama3.2:3b       test/c08 start 00:47:47 (13/30)
+llama3.2:3b       test/c08 lenient=0 strict=0 att=1 [stop] type=schema prompt=[672] 16.5tok/s 5s
+llama3.2:3b       test/c09 start 00:47:52 (14/30)
+llama3.2:3b       test/c09 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[651] 16.3tok/s 4s
+llama3.2:3b       test/c10 start 00:47:56 (15/30)
+llama3.2:3b       test/c10 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[654] 16.7tok/s 2s
+llama3.2:3b       test/c11 start 00:47:58 (16/30)
+llama3.2:3b       test/c11 lenient=0 strict=0 att=1 [stop] type=schema prompt=[651] 16.3tok/s 4s
+llama3.2:3b       test/c12 start 00:48:02 (17/30)
+llama3.2:3b       test/c12 lenient=1 strict=1 att=1 [stop] type=- prompt=[659] 16.6tok/s 4s
+llama3.2:3b       test/c13 start 00:48:06 (18/30)
+llama3.2:3b       test/c13 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[661] 11.4tok/s 8s
+llama3.2:3b       test/c14 start 00:48:14 (19/30)
+llama3.2:3b       test/c14 lenient=1 strict=1 att=1 [stop] type=- prompt=[662] 14.6tok/s 3s
+llama3.2:3b       test/c15 start 00:48:17 (20/30)
+llama3.2:3b       test/c15 lenient=1 strict=1 att=1 [stop] type=- prompt=[671] 15.1tok/s 6s
+llama3.2:3b       test/c16 start 00:48:22 (21/30)
+llama3.2:3b       test/c16 lenient=1 strict=0 att=1 [stop] type=- prompt=[656] 15.1tok/s 5s
+llama3.2:3b       test/c17 start 00:48:27 (22/30)
+llama3.2:3b       test/c17 lenient=1 strict=1 att=1 [stop] type=- prompt=[659] 15.0tok/s 3s
+llama3.2:3b       test/c18 start 00:48:30 (23/30)
+llama3.2:3b       test/c18 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[663] 15.3tok/s 5s
+llama3.2:3b       test/c19 start 00:48:35 (24/30)
+llama3.2:3b       test/c19 lenient=1 strict=1 att=1 [stop] type=- prompt=[654] 15.4tok/s 5s
+llama3.2:3b       test/c20 start 00:48:40 (25/30)
+llama3.2:3b       test/c20 lenient=0 strict=0 att=1 [stop] type=schema prompt=[663] 15.4tok/s 5s
+llama3.2:3b       test/c21 start 00:48:45 (26/30)
+llama3.2:3b       test/c21 lenient=0 strict=0 att=1 [stop] type=schema prompt=[656] 15.1tok/s 5s
+llama3.2:3b       test/c22 start 00:48:49 (27/30)
+llama3.2:3b       test/c22 lenient=1 strict=1 att=1 [stop] type=- prompt=[652] 15.3tok/s 5s
+llama3.2:3b       test/c23 start 00:48:54 (28/30)
+llama3.2:3b       test/c23 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[662] 14.5tok/s 5s
+llama3.2:3b       test/c24 start 00:48:59 (29/30)
+llama3.2:3b       test/c24 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[668] 15.3tok/s 4s
+llama3.2:3b       test/c25 start 00:49:03 (30/30)
+llama3.2:3b       test/c25 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[664] 15.0tok/s 7s
+qwen2.5-coder:3b: 30 to do (0 done); RAM available before load 7777 MB
+qwen2.5-coder:3b: warm-up 12s (load 3s, prompt 661 tokens)
+qwen2.5-coder:3b  dev/dc1 start 00:49:27 (1/30)
+qwen2.5-coder:3b  dev/dc1 lenient=1 strict=1 att=1 [stop] type=- prompt=[660] 16.5tok/s 2s
+qwen2.5-coder:3b  dev/dc2 start 00:49:28 (2/30)
+qwen2.5-coder:3b  dev/dc2 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[664] 16.3tok/s 7s
+qwen2.5-coder:3b  dev/dc3 start 00:49:35 (3/30)
+qwen2.5-coder:3b  dev/dc3 lenient=1 strict=1 att=1 [stop] type=- prompt=[670] 16.3tok/s 2s
+qwen2.5-coder:3b  dev/dc4 start 00:49:37 (4/30)
+qwen2.5-coder:3b  dev/dc4 lenient=1 strict=1 att=1 [stop] type=- prompt=[667] 16.6tok/s 2s
+qwen2.5-coder:3b  dev/dc5 start 00:49:39 (5/30)
+qwen2.5-coder:3b  dev/dc5 lenient=1 strict=1 att=1 [stop] type=- prompt=[673] 16.1tok/s 5s
+qwen2.5-coder:3b  test/c01 start 00:49:44 (6/30)
+qwen2.5-coder:3b  test/c01 lenient=1 strict=1 att=1 [stop] type=- prompt=[667] 16.0tok/s 6s
+qwen2.5-coder:3b  test/c02 start 00:49:50 (7/30)
+qwen2.5-coder:3b  test/c02 lenient=1 strict=1 att=1 [stop] type=- prompt=[667] 16.2tok/s 3s
+qwen2.5-coder:3b  test/c03 start 00:49:52 (8/30)
+qwen2.5-coder:3b  test/c03 lenient=0 strict=0 att=1 [stop] type=schema prompt=[664] 15.8tok/s 7s
+qwen2.5-coder:3b  test/c04 start 00:49:59 (9/30)
+qwen2.5-coder:3b  test/c04 lenient=1 strict=1 att=1 [stop] type=- prompt=[678] 16.4tok/s 2s
+qwen2.5-coder:3b  test/c05 start 00:50:02 (10/30)
+qwen2.5-coder:3b  test/c05 lenient=1 strict=1 att=1 [stop] type=- prompt=[663] 15.8tok/s 2s
+qwen2.5-coder:3b  test/c06 start 00:50:04 (11/30)
+qwen2.5-coder:3b  test/c06 lenient=0 strict=0 att=1 [stop] type=schema prompt=[674] 16.2tok/s 5s
+qwen2.5-coder:3b  test/c07 start 00:50:10 (12/30)
+qwen2.5-coder:3b  test/c07 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[669] 16.2tok/s 3s
+qwen2.5-coder:3b  test/c08 start 00:50:13 (13/30)
+qwen2.5-coder:3b  test/c08 lenient=1 strict=1 att=1 [stop] type=- prompt=[692] 16.1tok/s 6s
+qwen2.5-coder:3b  test/c09 start 00:50:19 (14/30)
+qwen2.5-coder:3b  test/c09 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[663] 16.2tok/s 3s
+qwen2.5-coder:3b  test/c10 start 00:50:22 (15/30)
+qwen2.5-coder:3b  test/c10 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[668] 15.5tok/s 4s
+qwen2.5-coder:3b  test/c11 start 00:50:26 (16/30)
+qwen2.5-coder:3b  test/c11 lenient=1 strict=1 att=1 [stop] type=- prompt=[665] 16.3tok/s 6s
+qwen2.5-coder:3b  test/c12 start 00:50:32 (17/30)
+qwen2.5-coder:3b  test/c12 lenient=1 strict=1 att=1 [stop] type=- prompt=[673] 16.1tok/s 4s
+qwen2.5-coder:3b  test/c13 start 00:50:35 (18/30)
+qwen2.5-coder:3b  test/c13 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[674] 16.3tok/s 4s
+qwen2.5-coder:3b  test/c14 start 00:50:39 (19/30)
+qwen2.5-coder:3b  test/c14 lenient=1 strict=1 att=1 [stop] type=- prompt=[678] 16.4tok/s 3s
+qwen2.5-coder:3b  test/c15 start 00:50:42 (20/30)
+qwen2.5-coder:3b  test/c15 lenient=1 strict=1 att=1 [stop] type=- prompt=[685] 16.4tok/s 4s
+qwen2.5-coder:3b  test/c16 start 00:50:45 (21/30)
+qwen2.5-coder:3b  test/c16 lenient=1 strict=1 att=1 [stop] type=- prompt=[668] 16.3tok/s 3s
+qwen2.5-coder:3b  test/c17 start 00:50:49 (22/30)
+qwen2.5-coder:3b  test/c17 lenient=1 strict=1 att=1 [stop] type=- prompt=[671] 16.4tok/s 2s
+qwen2.5-coder:3b  test/c18 start 00:50:51 (23/30)
+qwen2.5-coder:3b  test/c18 lenient=1 strict=1 att=1 [stop] type=- prompt=[677] 15.5tok/s 5s
+qwen2.5-coder:3b  test/c19 start 00:50:56 (24/30)
+qwen2.5-coder:3b  test/c19 lenient=1 strict=1 att=1 [stop] type=- prompt=[666] 15.9tok/s 4s
+qwen2.5-coder:3b  test/c20 start 00:51:01 (25/30)
+qwen2.5-coder:3b  test/c20 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[675] 15.3tok/s 3s
+qwen2.5-coder:3b  test/c21 start 00:51:03 (26/30)
+qwen2.5-coder:3b  test/c21 lenient=1 strict=1 att=1 [stop] type=- prompt=[670] 15.5tok/s 5s
+qwen2.5-coder:3b  test/c22 start 00:51:08 (27/30)
+qwen2.5-coder:3b  test/c22 lenient=0 strict=0 att=1 [stop] type=schema prompt=[666] 16.3tok/s 7s
+qwen2.5-coder:3b  test/c23 start 00:51:15 (28/30)
+qwen2.5-coder:3b  test/c23 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[676] 16.2tok/s 5s
+qwen2.5-coder:3b  test/c24 start 00:51:20 (29/30)
+qwen2.5-coder:3b  test/c24 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[680] 16.4tok/s 3s
+qwen2.5-coder:3b  test/c25 start 00:51:23 (30/30)
+qwen2.5-coder:3b  test/c25 lenient=1 strict=1 att=1 [stop] type=- prompt=[684] 15.7tok/s 7s
+qwen2.5-coder:7b: 30 to do (0 done); RAM available before load 7785 MB
+qwen2.5-coder:7b: warm-up 29s (load 7s, prompt 661 tokens)
+qwen2.5-coder:7b  dev/dc1 start 00:52:03 (1/30)
+qwen2.5-coder:7b  dev/dc1 lenient=1 strict=1 att=1 [stop] type=- prompt=[660] 7.3tok/s 4s
+qwen2.5-coder:7b  dev/dc2 start 00:52:07 (2/30)
+qwen2.5-coder:7b  dev/dc2 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[664] 7.5tok/s 10s
+qwen2.5-coder:7b  dev/dc3 start 00:52:17 (3/30)
+qwen2.5-coder:7b  dev/dc3 lenient=1 strict=1 att=1 [stop] type=- prompt=[670] 7.8tok/s 4s
+qwen2.5-coder:7b  dev/dc4 start 00:52:20 (4/30)
+qwen2.5-coder:7b  dev/dc4 lenient=1 strict=1 att=1 [stop] type=- prompt=[667] 7.8tok/s 4s
+qwen2.5-coder:7b  dev/dc5 start 00:52:24 (5/30)
+qwen2.5-coder:7b  dev/dc5 lenient=1 strict=1 att=1 [stop] type=- prompt=[673] 7.5tok/s 8s
+qwen2.5-coder:7b  test/c01 start 00:52:32 (6/30)
+qwen2.5-coder:7b  test/c01 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[667] 7.7tok/s 13s
+qwen2.5-coder:7b  test/c02 start 00:52:45 (7/30)
+qwen2.5-coder:7b  test/c02 lenient=1 strict=1 att=1 [stop] type=- prompt=[667] 7.4tok/s 6s
+qwen2.5-coder:7b  test/c03 start 00:52:51 (8/30)
+qwen2.5-coder:7b  test/c03 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[664] 7.5tok/s 11s
+qwen2.5-coder:7b  test/c04 start 00:53:02 (9/30)
+qwen2.5-coder:7b  test/c04 lenient=1 strict=1 att=1 [stop] type=- prompt=[678] 7.8tok/s 5s
+qwen2.5-coder:7b  test/c05 start 00:53:07 (10/30)
+qwen2.5-coder:7b  test/c05 lenient=1 strict=1 att=1 [stop] type=- prompt=[663] 7.8tok/s 4s
+qwen2.5-coder:7b  test/c06 start 00:53:11 (11/30)
+qwen2.5-coder:7b  test/c06 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[674] 7.6tok/s 14s
+qwen2.5-coder:7b  test/c07 start 00:53:25 (12/30)
+qwen2.5-coder:7b  test/c07 lenient=1 strict=1 att=1 [stop] type=- prompt=[669] 7.7tok/s 9s
+qwen2.5-coder:7b  test/c08 start 00:53:34 (13/30)
+qwen2.5-coder:7b  test/c08 lenient=1 strict=1 att=1 [stop] type=- prompt=[692] 7.6tok/s 14s
+qwen2.5-coder:7b  test/c09 start 00:53:47 (14/30)
+qwen2.5-coder:7b  test/c09 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[663] 7.6tok/s 8s
+qwen2.5-coder:7b  test/c10 start 00:53:55 (15/30)
+qwen2.5-coder:7b  test/c10 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[668] 7.7tok/s 8s
+qwen2.5-coder:7b  test/c11 start 00:54:03 (16/30)
+qwen2.5-coder:7b  test/c11 lenient=1 strict=0 att=1 [stop] type=- prompt=[665] 7.7tok/s 13s
+qwen2.5-coder:7b  test/c12 start 00:54:16 (17/30)
+qwen2.5-coder:7b  test/c12 lenient=1 strict=1 att=1 [stop] type=- prompt=[673] 7.7tok/s 7s
+qwen2.5-coder:7b  test/c13 start 00:54:23 (18/30)
+qwen2.5-coder:7b  test/c13 lenient=1 strict=1 att=1 [stop] type=- prompt=[674] 7.4tok/s 7s
+qwen2.5-coder:7b  test/c14 start 00:54:30 (19/30)
+qwen2.5-coder:7b  test/c14 lenient=1 strict=1 att=1 [stop] type=- prompt=[678] 7.8tok/s 6s
+qwen2.5-coder:7b  test/c15 start 00:54:36 (20/30)
+qwen2.5-coder:7b  test/c15 lenient=1 strict=1 att=1 [stop] type=- prompt=[685] 7.7tok/s 9s
+qwen2.5-coder:7b  test/c16 start 00:54:45 (21/30)
+qwen2.5-coder:7b  test/c16 lenient=1 strict=1 att=1 [stop] type=- prompt=[668] 7.7tok/s 7s
+qwen2.5-coder:7b  test/c17 start 00:54:52 (22/30)
+qwen2.5-coder:7b  test/c17 lenient=1 strict=1 att=1 [stop] type=- prompt=[671] 7.3tok/s 5s
+qwen2.5-coder:7b  test/c18 start 00:54:56 (23/30)
+qwen2.5-coder:7b  test/c18 lenient=1 strict=1 att=1 [stop] type=- prompt=[677] 7.7tok/s 8s
+qwen2.5-coder:7b  test/c19 start 00:55:05 (24/30)
+qwen2.5-coder:7b  test/c19 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[666] 7.7tok/s 7s
+qwen2.5-coder:7b  test/c20 start 00:55:11 (25/30)
+qwen2.5-coder:7b  test/c20 lenient=1 strict=1 att=1 [stop] type=- prompt=[675] 7.6tok/s 8s
+qwen2.5-coder:7b  test/c21 start 00:55:19 (26/30)
+qwen2.5-coder:7b  test/c21 lenient=1 strict=1 att=1 [stop] type=- prompt=[670] 7.5tok/s 11s
+qwen2.5-coder:7b  test/c22 start 00:55:30 (27/30)
+qwen2.5-coder:7b  test/c22 lenient=1 strict=1 att=1 [stop] type=- prompt=[666] 7.7tok/s 10s
+qwen2.5-coder:7b  test/c23 start 00:55:40 (28/30)
+qwen2.5-coder:7b  test/c23 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[676] 7.7tok/s 10s
+qwen2.5-coder:7b  test/c24 start 00:55:51 (29/30)
+qwen2.5-coder:7b  test/c24 lenient=1 strict=1 att=1 [stop] type=- prompt=[680] 7.5tok/s 8s
+qwen2.5-coder:7b  test/c25 start 00:55:59 (30/30)
+qwen2.5-coder:7b  test/c25 lenient=0 strict=0 att=1 [stop] type=unclassified prompt=[684] 7.5tok/s 13s
+done -> C:\Users\Anupam Mishra\ai-eng-portfolio\p1-text2sql\results\stage2

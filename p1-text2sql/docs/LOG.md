@@ -164,3 +164,57 @@ to change (for example a gold-SQL bug found in the audit), the change gets its o
 saying what, why and which results it invalidates, plus new hashes, and the affected runs are
 repeated. The test set is never edited to match model output. Prompt iteration (few-shot
 fallback, stage 2 gate) uses dev only, and a new prompt is a new, logged file version.
+
+## 2026-11-26: stage 2 run, results and the gate (first model run on the frozen set)
+**Run:** `results/stage2`, session 00:43-00:56 at commit 97734d6. Frozen-file check passed;
+4 models x 30 clear questions (25 test + 5 dev), one model loaded at a time, 7.5-7.8 GB RAM
+free before each load. 120/120 results, 0 infra errors, 0 timeouts, 0 stall dumps,
+1 JSON retry (qwen2.5:3b, then valid). Per model 2.3-4.7 min.
+
+**Gate, applied exactly as pre-registered** (test lenient execution accuracy, point estimate,
+>= 0.50):
+
+| model | test lenient [95% CI] | test strict | gate |
+|---|---|---|---|
+| llama3.2:3b | 0.36 [0.16, 0.56] | 0.32 | FAIL |
+| qwen2.5:3b | 0.36 [0.16, 0.56] | 0.36 | FAIL |
+| qwen2.5-coder:3b | 0.60 [0.40, 0.80] | 0.60 | pass |
+| qwen2.5-coder:7b | 0.68 [0.48, 0.84] | 0.64 | pass |
+
+- qwen2.5-coder:3b and qwen2.5-coder:7b continue to stage 3. llama3.2:3b and qwen2.5:3b are
+  excluded from the clarification headline (appendix only, labelled uninterpretable).
+- Not every 3B is below the gate, so the fallback steps (7B as the main model, few-shot,
+  schema simplification) are **not triggered**. No prompt or frozen file was changed.
+- Caveat recorded now, not after stage 3: qwen2.5-coder:3b passes on the point estimate, but its
+  CI [0.40, 0.80] includes 0.50, so it could fall below on another sample of questions. The gate
+  was pre-registered as a point estimate, so this is reported, not acted on.
+- The dev set (5 questions) gives 0.80 for every model, so it does not separate the models. It
+  is too small to tune anything on, which matters if few-shot tuning is ever needed.
+
+**Failure labels** (`results/stage2/failure_labels.csv`, 54 lenient misses, labelled by Claude by
+reading each gold and predicted query; the user can check them). Rule, applied the same way to
+every failure: a query that fails to run keeps its mechanical type (syntax, schema). A query
+that runs gets one primary type: if it has several errors, the first that applies in the order
+schema (wrong table or column, including an existing but wrong one such as `list_price` or
+`payments`) > join > date (any date condition) > filter > aggregate > shape. Recurring patterns:
+`list_price` used for revenue (5 failures), revenue computed from payments (coder:7b, 3), refunds
+returned with a negative sign despite the glossary (several), `COUNT` inside `GROUP BY` for
+"how many orders" (c09, all four models), and cancelled orders kept or dropped against the
+question.
+
+## 2026-11-26: the prompt-cache check measured the wrong thing (found in the stage 2 data)
+**What broke:** the plan said the prompt cache would be verified with `prompt_eval_count`, and
+the first report had a "prompt tokens p50" column for that. It showed 658-670 tokens for every
+call, which reads as "the cache never hit".
+**Why:** this Ollama version reports the whole prompt in `prompt_eval_count` even when the prefix
+is reused from cache. The timing shows the cache did work. Latency minus decode time is 0.5-0.6 s
+per question for the 3B models and 1.2 s for the 7B. Processing ~660 tokens without the cache
+would take ~13 s at the ~50 tok/s measured in p2.
+**Fix:** the report now shows "non-decode time" (latency minus decode time), and `bench.py`
+records `prompt_eval_duration_s` from now on, so later stages measure prompt time directly. No
+result changed.
+**Metric before/after:** cache evidence: "658-670 prompt tokens" (misleading) -> "0.5-1.2 s
+non-decode time" (cache reused). The time estimate given before the run (about 20 min with
+caching, up to 60 without) compared with the actual 13 min: caching worked and answers were
+shorter than assumed (median 50-64 output tokens, not ~80).
+Also fixed before commit: the report printed the extra-columns-only count as a float (`1.0`).
