@@ -54,10 +54,18 @@ ground truth for it, and the grading rubric does not score it.
 ## Results
 
 42 notes sections x 3 models x 2 decoding modes, one sample each, thresholds frozen at
-tau_quote = 0.85 / tau_answer = 0.4 before the run. Full tables: `runs/notes_combined/report.md`
-(reliability, groundedness, memory, paired mode comparisons, sensitivity grids),
-`grading/notes_full/grades_report_llm_graded__chatgpt.md`, `grading/notes_full/copy_diagnostic.md`
-(not committed; reproduce with the commands in each module's docstring).
+tau_quote = 0.85 / tau_answer = 0.4 before the run. Full tables, committed in
+[`results/`](results/) (aggregates only):
+
+- [`notes_combined_report.md`](results/notes_combined_report.md): reliability, groundedness, memory, paired mode comparisons, sensitivity grids
+- [`grades_report_llm_graded__chatgpt.md`](results/grades_report_llm_graded__chatgpt.md): LLM grades (ChatGPT), 120 rows
+- [`grades_report_hand_graded.md`](results/grades_report_hand_graded.md): hand grades, 30 rows
+- [`agreement_vs_chatgpt.md`](results/agreement_vs_chatgpt.md): hand vs ChatGPT, row by row
+- [`copy_diagnostic.md`](results/copy_diagnostic.md): copy diagnostic
+
+Raw runs, per-question CSVs, grading sheets and keys are not committed. To regenerate the
+reports, use the commands in each module's docstring (`studyqa.report`, `studyqa.grading`,
+`studyqa.diagnostics`); they write to `runs/` and `grading/`, and `results/` holds copies.
 
 **No model is declared best.** The two quality measures disagree (below), the grades are
 LLM-graded (human-validated on 30 rows only), and model-vs-model grade differences are
@@ -130,7 +138,7 @@ no model calls.
 modes, seeded; drawn from the blank sheet, without seeing ChatGPT's grades), then matched to
 ChatGPT's grade for the same row. 95% CIs are percentile bootstraps over rows (10,000
 resamples; resamples where a statistic is undefined, e.g. all grades equal, are dropped and
-counted in `grading/notes_full_human/agreement_vs_chatgpt.md`).
+counted in [`results/agreement_vs_chatgpt.md`](results/agreement_vs_chatgpt.md)).
 
 | hand vs ChatGPT | value | 95% CI |
 |---|---|---|
