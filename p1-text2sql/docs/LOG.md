@@ -86,3 +86,23 @@ All fixed before the hand check. Nothing here has been seen by a model.
 4. **Glossary gap:** "units sold" did not say whether cancelled orders count, so every "how many
    did we sell" question carried a second, hidden ambiguity that its clarifying answer did not
    resolve. **Fix (before the freeze):** the glossary now says units sold excludes cancelled orders.
+
+## 2026-11-26: hand check rejected four ambiguous test questions (before any model run)
+**What happened:** the user hand-checked every reading in `testset/check_sheet.csv` (dev and
+test, 92 rows). All gold SQL was accepted (`gold_ok = y` everywhere). Every label was accepted
+except four ambiguous test questions, marked `label_ok = n`: the user judged that they have
+one natural reading, so they are not ambiguous. Reasons, verbatim from the user:
+- a07 ("How many orders, including cancelled ones, did we get last month?"): "Last month" means the previous calendar month (May), not the current month (June), so reading B isn't a natural interpretation.
+- a08 ("What was our revenue this year?"): "This year" normally means the current calendar year (2026 YTD), not the past 12 months.
+- a10 ("How many new customers signed up last quarter?"): "Last quarter" means the previous completed calendar quarter (January-March), not the current quarter (April-June).
+- a12 ("How many active customers do we have?"): "Active customers" is ambiguous, but the readings aren't sufficiently well-defined alternatives: registered customers aren't necessarily active, and the 90-day cutoff is arbitrary.
+
+**Why it got through:** the validator checks only that readings give different *results* (R4).
+It cannot judge whether a second reading is one a real person would choose. Three of the four
+are "last/this + calendar unit" questions, where the second reading was manufactured.
+**What is done:** the marks are in the check sheet. The four questions stay in `questions.jsonl`
+unchanged until the user approves replacements. They are not reworded to pass, and
+nothing is frozen yet. The replacements keep 25 ambiguous questions and the category counts
+(3 time_window, 1 entity), and they go through the same hand check before the freeze.
+**Metric:** labels accepted 46/50 questions (83/92 rows: the 4 rejected questions have 9 readings);
+gold SQL accepted 92/92 rows.
