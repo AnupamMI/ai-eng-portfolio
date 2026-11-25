@@ -20,7 +20,7 @@ import statistics
 from collections import Counter
 from pathlib import Path
 
-from evalkit import Result, bootstrap_ci, load_results
+from evalkit import Result, bootstrap_ci, load_results, paired_bootstrap
 from text2sql.freeze import ROOT
 from text2sql.score import FAILURE_TYPES
 from text2sql.testset import TESTSET_DIR, load
@@ -55,6 +55,14 @@ def failure_type(r: Result, labels) -> str:
     return r.meta.get("auto_type") or "unclassified"
 
 
+def _non_decode_s(r: Result) -> float:
+    m = r.meta
+    if m.get("prompt_eval_duration_s"):
+        return sum(m["prompt_eval_duration_s"])
+    decode = sum(e / t for e, t in zip(m["eval_count"], m["tok_s"]) if t)
+    return max(0.0, r.latency_s - decode)
+
+
 def _ci(xs: list[float]) -> tuple[float, float, float]:
     if not xs:
         return float("nan"), float("nan"), float("nan")
@@ -74,8 +82,10 @@ def model_rows(runs, labels) -> list[dict]:
         t, d = by["test"], by["dev"]
         lat = [r.latency_s for r in t + d]
         tps = [r.meta["tok_s"][0] for r in t + d if r.meta["tok_s"] and r.meta["tok_s"][0]]
-        # prompt tokens actually processed on the first attempt; small = prefix cache hit
-        pe = [r.meta["prompt_eval_count"][0] for r in t + d if r.meta["prompt_eval_count"]]
+        # Time not spent decoding (prompt processing + overhead). Ollama's prompt_eval_count
+        # reports the whole prompt even when its prefix cache is reused (docs/LOG.md), so the
+        # cache is judged from time, not from that count.
+        pe = [_non_decode_s(r) for r in t + d]
         ran = [r for r in t if r.output.get("sql") is not None]
         exec_fail = sum(1 for r in ran
                         if not all(v["pred"]["ok"] for v in r.meta["seeds"].values()))
@@ -95,9 +105,33 @@ def model_rows(runs, labels) -> list[dict]:
                                 if not r.scores["lenient"]),
             "failures_test": Counter(failure_type(r, labels) for r in t
                                      if not r.scores["lenient"]),
-            "extra_only": sum(r.scores["lenient"] and not r.scores["strict"] for r in t + d),
+            "extra_only": sum(bool(r.scores["lenient"] and not r.scores["strict"]) for r in t + d),
         })
     return rows
+
+
+def paired(runs) -> list[str]:
+    """Paired differences in test lenient accuracy, every model vs every other (same questions)."""
+    models = list(runs)
+    if len(models) < 2:
+        return []
+    sc = {m: {r.case_id: r.scores["lenient"] for r in runs[m] if r.meta["split"] == "test"}
+          for m in models}
+    L = ["", "## Paired differences, test lenient (row minus column; 95% CI, bootstrap over "
+         "questions)", "", "| | " + " | ".join(models) + " |", "|---|" + "---|" * len(models)]
+    for a in models:
+        cells = []
+        for b in models:
+            if a == b:
+                cells.append("")
+                continue
+            ids = sorted(set(sc[a]) & set(sc[b]))
+            before, after = [sc[b][i] for i in ids], [sc[a][i] for i in ids]
+            lo, hi = paired_bootstrap(before, after)
+            d = statistics.fmean(after) - statistics.fmean(before)
+            cells.append(f"{d:+.2f} [{lo:+.2f}, {hi:+.2f}]")
+        L.append(f"| {a} | " + " | ".join(cells) + " |")
+    return L
 
 
 def markdown(runs, labels) -> str:
@@ -107,7 +141,7 @@ def markdown(runs, labels) -> str:
          "over questions (one reading per clear question, so this is the cluster bootstrap by "
          "question). Correct = same results as the gold SQL on both seeds.", "",
          "| model | test lenient (n) | test strict | gate | dev lenient / strict (n) | valid 1st try "
-         "| test queries that fail to run | infra errors | latency p50 | tok/s p50 | prompt tokens p50 |",
+         "| test queries that fail to run | infra errors | latency p50 | tok/s p50 | non-decode time p50 |",
          "|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in rows:
         gate = "pass" if r["test_lenient"][0] >= GATE else "FAIL"
@@ -115,7 +149,8 @@ def markdown(runs, labels) -> str:
                  f"{_fmt(r['test_strict'])} | {gate} | {r['dev_lenient']:.2f} / {r['dev_strict']:.2f}"
                  f" ({r['n_dev']}) | {r['valid_first_try']:.2f} | {r['exec_fail_test']} | "
                  f"{r['infra_errors']} | {r['lat_p50']:.1f} s | {r['tps_p50']:.1f} | "
-                 f"{r['prompt_p50']:.0f} |")
+                 f"{r['prompt_p50']:.1f} s |")
+    L += paired(runs)
     types = list(FAILURE_TYPES) + ["unclassified"]
     L += ["", "## Failure types (lenient misses, test + dev; test only in brackets)", "",
           "| model | " + " | ".join(types) + " | total | extra columns only (strict miss) |",

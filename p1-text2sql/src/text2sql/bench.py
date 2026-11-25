@@ -88,6 +88,7 @@ def run_question(llm: Ollama, split: str, q: Question, dbs, gold) -> Result:
         "split": split, "qid": q.id, "model": llm.model, "auto_type": s["auto_type"],
         "seeds": {str(k): v for k, v in s["seeds"].items()},
         "prompt_eval_count": [x["prompt_eval_count"] for x in resp],
+        "prompt_eval_duration_s": [x["prompt_eval_duration_s"] for x in resp],
         "eval_count": [x["eval_count"] for x in resp],
         "tok_s": [round(x["eval_count"] / x["eval_duration_s"], 1) if x["eval_duration_s"] else 0
                   for x in resp],
