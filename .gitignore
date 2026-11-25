@@ -10,3 +10,8 @@ runs/
 # Publish aggregates and hand-picked examples only.
 p*/data/
 p*/grading/
+
+# Secrets (no project uses any yet; belt and braces before publishing)
+.env*
+*.key
+*.pem
