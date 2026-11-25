@@ -68,3 +68,18 @@ def test_spearman():
     assert spearman([1, 2, 3, 4], [10, 20, 30, 40]) == pytest.approx(1.0)
     assert spearman([1, 2, 3], [3, 2, 1]) == pytest.approx(-1.0)
     assert spearman([1, 1, 1], [1, 2, 3]) != spearman([1, 1, 1], [1, 2, 3])  # nan: no variance
+
+
+def test_key_can_live_outside_the_grading_folder(run_dir, tmp_path):
+    run, cases = run_dir
+    out, key = tmp_path / "grading", tmp_path / "keys" / "key.csv"
+    export(run, cases, out, n=3, seed=0, key_path=key)
+    assert key.exists() and not (out / "key.csv").exists()
+    rows = list(csv.DictReader(open(out / "to_grade.csv", encoding="utf-8")))
+    for r in rows:
+        r["grade"] = "2"
+    with open(out / "to_grade.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=list(rows[0]))
+        w.writeheader()
+        w.writerows(rows)
+    assert "| a-3b | json | 3 | 2.00 |" in import_grades(run, out, reground=False, key_path=key)

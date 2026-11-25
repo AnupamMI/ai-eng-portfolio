@@ -48,7 +48,11 @@ def spearman(x: list[float], y: list[float]) -> float:
     return statistics.correlation(_ranks(x), _ranks(y))
 
 
-def export(run_dirs: list[Path], cases_path: Path, out: Path, n: int, seed: int) -> None:
+def export(run_dirs: list[Path], cases_path: Path, out: Path, n: int, seed: int,
+           key_path: Path | None = None) -> None:
+    """key_path: where the model/mode key goes; default out/key.csv. Put it outside
+    `out` so the grader never has it in the folder they work in."""
+    key_path = key_path or out / "key.csv"
     runs, _ = load_runs(run_dirs, reground=False)  # sampling uses validity only
     sections = {c.id: c.input for c in load_cases(cases_path)}
     rng = random.Random(seed)
@@ -76,7 +80,8 @@ def export(run_dirs: list[Path], cases_path: Path, out: Path, n: int, seed: int)
         for i, r in enumerate(rows, 1):
             w.writerow([f"g{i:03d}", r["section"], r["title"], r["question"], r["answer"],
                         r["source_quote"], "", ""])
-    with open(out / "key.csv", "w", newline="", encoding="utf-8") as f:
+    key_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(key_path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["id", "model", "mode", "section", "q_idx"])
         for i, r in enumerate(rows, 1):
@@ -86,12 +91,13 @@ def export(run_dirs: list[Path], cases_path: Path, out: Path, n: int, seed: int)
         f"## {cid}\n\n**{sections[cid]['title']}**\n\n{sections[cid]['text']}" for cid in used),
         encoding="utf-8")
     print(f"wrote {len(rows)} rows to {out / 'to_grade.csv'} "
-          f"(key in key.csv; don't open it until grading is done)")
+          f"(key in {key_path}; don't open it until grading is done)")
 
 
-def import_grades(run_dirs: list[Path], grades_dir: Path, *, reground: bool = True) -> str:
+def import_grades(run_dirs: list[Path], grades_dir: Path, *, reground: bool = True,
+                  key_path: Path | None = None) -> str:
     runs, _ = load_runs(run_dirs, reground=reground)
-    with open(grades_dir / "key.csv", encoding="utf-8-sig") as f:
+    with open(key_path or grades_dir / "key.csv", encoding="utf-8-sig") as f:
         key = {r["id"]: r for r in csv.DictReader(f)}
     with open(grades_dir / "to_grade.csv", encoding="utf-8-sig") as f:
         graded = list(csv.DictReader(f))
@@ -142,14 +148,16 @@ def main(argv: list[str] | None = None) -> None:
     e.add_argument("--out", type=Path, required=True)
     e.add_argument("--n", type=int, default=20, help="sections per model (x2 modes)")
     e.add_argument("--seed", type=int, default=0)
+    e.add_argument("--key", type=Path, help="key file path (default: OUT/key.csv)")
     i = sub.add_parser("import")
     i.add_argument("run_dirs", type=Path, nargs="+")
     i.add_argument("--grades", type=Path, required=True)
+    i.add_argument("--key", type=Path, help="key file path (default: GRADES/key.csv)")
     a = ap.parse_args(argv)
     if a.cmd == "export":
-        export(a.run_dirs, a.cases, a.out, a.n, a.seed)
+        export(a.run_dirs, a.cases, a.out, a.n, a.seed, key_path=a.key)
     else:
-        print(import_grades(a.run_dirs, a.grades))
+        print(import_grades(a.run_dirs, a.grades, key_path=a.key))
 
 
 if __name__ == "__main__":
