@@ -43,6 +43,13 @@ def _ranks(xs: list[float]) -> list[float]:
     return ranks
 
 
+def _ci(items: list, stat) -> str:
+    """Row-resampling bootstrap 95% CI, noting resamples where the statistic is undefined."""
+    from evalkit import bootstrap_ci
+    lo, hi, dropped = bootstrap_ci(items, stat)
+    return f"[{lo:+.2f}, {hi:+.2f}]" + (f" ({dropped} of 10000 resamples undefined)" if dropped else "")
+
+
 def spearman(x: list[float], y: list[float]) -> float:
     if len(set(x)) < 2 or len(set(y)) < 2:
         return float("nan")
@@ -155,15 +162,20 @@ def agree(sheet_a: Path, key_a: Path, sheet_b: Path, *, label_a: str, label_b: s
     b = [gb[key[i]["source_id"]] for i in ids]
     labels = [1, 2, 3]
     m = confusion(a, b, labels)
+    pairs = list(zip(a, b))
+    rho = lambda ps: spearman([float(x) for x, _ in ps], [float(y) for _, y in ps])
+    kq = lambda ps: weighted_kappa([x for x, _ in ps], [y for _, y in ps], labels)
+    kl = lambda ps: weighted_kappa([x for x, _ in ps], [y for _, y in ps], labels,
+                                   weights="linear")
     dist = lambda xs: " / ".join(str(xs.count(v)) for v in labels)
     lines = [f"# Agreement: {label_a} vs {label_b}", "",
              f"{len(ids)} rows, matched by `source_id`. Grades 1-3.", "",
-             "| statistic | value |", "|---|---|",
-             f"| Spearman rho | {spearman([float(x) for x in a], [float(x) for x in b]):.2f} |",
+             "| statistic | value | bootstrap 95% CI |", "|---|---|---|",
+             f"| Spearman rho | {rho(pairs):.2f} | {_ci(pairs, rho)} |",
              f"| exact agreement | {exact_agreement(a, b):.2f} ({sum(x == y for x, y in zip(a, b))}"
-             f"/{len(a)}) |",
-             f"| weighted kappa, quadratic | {weighted_kappa(a, b, labels):.2f} |",
-             f"| weighted kappa, linear | {weighted_kappa(a, b, labels, weights='linear'):.2f} |",
+             f"/{len(a)}) | {_ci(pairs, lambda ps: exact_agreement(*zip(*ps)))} |",
+             f"| weighted kappa, quadratic | {kq(pairs):.2f} | {_ci(pairs, kq)} |",
+             f"| weighted kappa, linear | {kl(pairs):.2f} | {_ci(pairs, kl)} |",
              f"| mean grade {label_a} | {statistics.fmean(a):.2f} |",
              f"| mean grade {label_b} | {statistics.fmean(b):.2f} |",
              f"| grade counts 1 / 2 / 3, {label_a} | {dist(a)} |",
@@ -220,9 +232,10 @@ def import_grades(run_dirs: list[Path], grades_dir: Path, *, grader: str, regrou
             lines += ["", f"**{model}**", "", to_markdown(d)]
     hg = [p[0] for p in pairs]
     lines += ["", f"## Does the lexical metric track the grades ({grader})? (Spearman, all graded rows)",
-              "", "| metric | rho |", "|---|---|"]
+              "", "| metric | rho | bootstrap 95% CI |", "|---|---|---|"]
     for name, i in [("quote_fidelity", 1), ("answer_support", 2), ("grounded@0.85/0.4", 3)]:
-        lines.append(f"| {name} | {spearman(hg, [p[i] for p in pairs]):.2f} |")
+        r = lambda ps, i=i: spearman([float(p[0]) for p in ps], [p[i] for p in ps])
+        lines.append(f"| {name} | {spearman(hg, [p[i] for p in pairs]):.2f} | {_ci(pairs, r)} |")
     md = "\n".join(lines)
     (grades_dir / f"grades_report_{slug}.md").write_text(md, encoding="utf-8")
     return md
