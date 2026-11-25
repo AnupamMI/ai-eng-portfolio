@@ -1,4 +1,4 @@
-﻿"""Blind hand-grading: export a shuffled sample, import grades, analyse.
+"""Blind hand-grading: export a shuffled sample, import grades, analyse.
 
     uv run python -m studyqa.grading export runs/full --cases data/full.jsonl --out grading/full
     # fill the `grade` column (1-3) in grading/full/to_grade.csv
@@ -23,7 +23,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from evalkit import Result, compare, load_cases, to_markdown
-from studyqa.report import load_run
+from studyqa.report import load_runs
 
 MODES = ("json", "constrained")
 
@@ -48,8 +48,8 @@ def spearman(x: list[float], y: list[float]) -> float:
     return statistics.correlation(_ranks(x), _ranks(y))
 
 
-def export(run_dir: Path, cases_path: Path, out: Path, n: int, seed: int) -> None:
-    runs = load_run(run_dir, reground=False)  # sampling uses validity only
+def export(run_dirs: list[Path], cases_path: Path, out: Path, n: int, seed: int) -> None:
+    runs, _ = load_runs(run_dirs, reground=False)  # sampling uses validity only
     sections = {c.id: c.input for c in load_cases(cases_path)}
     rng = random.Random(seed)
     rows = []
@@ -89,8 +89,8 @@ def export(run_dir: Path, cases_path: Path, out: Path, n: int, seed: int) -> Non
           f"(key in key.csv; don't open it until grading is done)")
 
 
-def import_grades(run_dir: Path, grades_dir: Path, *, reground: bool = True) -> str:
-    runs = load_run(run_dir, reground=reground)
+def import_grades(run_dirs: list[Path], grades_dir: Path, *, reground: bool = True) -> str:
+    runs, _ = load_runs(run_dirs, reground=reground)
     with open(grades_dir / "key.csv", encoding="utf-8-sig") as f:
         key = {r["id"]: r for r in csv.DictReader(f)}
     with open(grades_dir / "to_grade.csv", encoding="utf-8-sig") as f:
@@ -137,19 +137,19 @@ def main(argv: list[str] | None = None) -> None:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     e = sub.add_parser("export")
-    e.add_argument("run_dir", type=Path)
+    e.add_argument("run_dirs", type=Path, nargs="+")
     e.add_argument("--cases", type=Path, required=True)
     e.add_argument("--out", type=Path, required=True)
     e.add_argument("--n", type=int, default=20, help="sections per model (x2 modes)")
     e.add_argument("--seed", type=int, default=0)
     i = sub.add_parser("import")
-    i.add_argument("run_dir", type=Path)
+    i.add_argument("run_dirs", type=Path, nargs="+")
     i.add_argument("--grades", type=Path, required=True)
     a = ap.parse_args(argv)
     if a.cmd == "export":
-        export(a.run_dir, a.cases, a.out, a.n, a.seed)
+        export(a.run_dirs, a.cases, a.out, a.n, a.seed)
     else:
-        print(import_grades(a.run_dir, a.grades))
+        print(import_grades(a.run_dirs, a.grades))
 
 
 if __name__ == "__main__":

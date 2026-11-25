@@ -38,7 +38,7 @@ def test_report_end_to_end(tmp_path):
         {"memory": {"m:3b|pass0": {"peak_delta_mb": 2100, "loaded_delta_mb": 1900,
                                    "baseline_mb": 50}}, "git_commit": "abc"}))
     md = report(tmp_path, 0.9, 0.5, reground=False)
-    assert "| m-3b | constrained | 10 | 1.00 | 1.00 | 0 | 0 | 0 | 0.00 | 0 | 15.0 |" in md
+    assert "| m-3b | constrained | 10 | 1.00 | 1.00 | 0 | 0 | 0 | 0 | 0.00 | 0 | 0 | 15.0 |" in md
     assert "| m-3b | constrained | 1.00 | 1.00 | 1.00 | 0.00 |" in md  # groundedness table
     assert "| m-3b | json | 0.00 | 0.00 | 1.00 | 1.00 |" in md  # all wrong-quote
     assert "|---|---|---|---|---|---|---|\n| m-3b" in md  # sensitivity tables well-formed
@@ -68,6 +68,46 @@ def test_reground_uses_current_metric_and_checks_hash(tmp_path):
     cases.write_text(cases.read_text() + "\n")
     with pytest.raises(ValueError, match="changed since the run"):
         load_run(run)
+
+
+def _run_dir(path, model, meta, results):
+    path.mkdir(parents=True)
+    for mode in ("json", "constrained"):
+        save_results(results, path / f"{model}__{mode}__p0.jsonl")
+    (path / "meta.json").write_text(json.dumps(meta))
+
+
+def test_report_merges_sessions_and_keeps_their_provenance(tmp_path):
+    proto = {"cases_sha256": "x", "num_predict": 1536}
+    recovered = _result("s0", True, [1] * 5, [1] * 5, attempts=2)
+    recovered.output["responses"] = [{"eval_count": 1536, "eval_duration_s": 9,
+                                      "done_reason": "length"},
+                                     {"eval_count": 300, "eval_duration_s": 9,
+                                      "done_reason": "stop"}]
+    _run_dir(tmp_path / "a", "m-3b", {**proto, "git_commit": "aaa", "system_ram_at_start_mb":
+             {"used": 9000, "available": 6800},
+             "memory": {"m:3b|pass0": {"loaded_delta_mb": 2000,
+                                       "system_available_before_mb": 8800}}},
+             [_result("s0", True, [1] * 5, [1] * 5)])
+    _run_dir(tmp_path / "b", "p-3b", {**proto, "git_commit": "bbb", "system_ram_at_start_mb":
+             {"used": 6500, "available": 9300},
+             "memory": {"p:3b|pass0": {"loaded_delta_mb": 3600,
+                                       "system_available_before_mb": 9284}}}, [recovered])
+    md = report([tmp_path / "a", tmp_path / "b"], 0.85, 0.4, out_dir=tmp_path / "c",
+                reground=False)
+    assert "| m-3b | 2000 |" in md and "| p-3b | 3600 |" in md  # each model's own meta
+    assert "| 9000 / 6800 | m:3b: 8800 |" in md and "| 6500 / 9300 | p:3b: 9284 |" in md
+    # recovered runaway: valid, 1 section retried, 1 cap hit, not a failure
+    assert "| p-3b | json | 1 | 0.00 | 1.00 | 0 | 0 | 0 | 1 | 1.00 | 1 |" in md
+    assert (tmp_path / "c" / "report.md").exists()
+
+    with pytest.raises(ValueError, match="more than one run dir"):
+        report([tmp_path / "a", tmp_path / "a"], 0.85, 0.4, out_dir=tmp_path / "c",
+               reground=False)
+    _run_dir(tmp_path / "d", "q-3b", {**proto, "num_predict": 1024}, [recovered])
+    with pytest.raises(ValueError, match="differ in num_predict"):
+        report([tmp_path / "a", tmp_path / "d"], 0.85, 0.4, out_dir=tmp_path / "c",
+               reground=False)
 
 
 def test_failure_kinds():
