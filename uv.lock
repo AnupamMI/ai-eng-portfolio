@@ -390,12 +390,16 @@ version = "0.1.0"
 source = { editable = "p1-text2sql" }
 dependencies = [
     { name = "evalkit" },
+    { name = "httpx" },
+    { name = "psutil" },
     { name = "pydantic" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "evalkit", editable = "shared/evalkit" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "psutil", specifier = ">=5.9" },
     { name = "pydantic", specifier = ">=2.7" },
 ]
 
