@@ -20,9 +20,11 @@ code, tables or fragments. Results may overstate quality on messy real notes.
 
 ### Section extraction
 
-A section is the text under one heading, split at the shallowest heading level;
-sections over 1200 words are split again at their subheadings, sections under
-150 words are dropped. `#` lines inside code fences are not headings.
+A heading's text (including its subheadings) is kept as one section if it is 150-1200
+words. Only text over 1200 words is split, at its next heading level, recursively; pieces
+under 150 words are dropped. So a file of 1200 words or less is **one** section even if it
+has several `##` headings. `#` lines inside code fences are not headings. (Every
+`notes_sample/` file is 1931-2140 words, so each splits into its seven `##` sections.)
 
 | Set | Kept | Filtered | Why |
 |---|---|---|---|

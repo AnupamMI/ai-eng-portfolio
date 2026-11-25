@@ -68,3 +68,11 @@ Evidence (quote fidelity after the link fix above):
 - **Fix:** the rerun was started with stdout+stderr redirected to `console.txt` via `cmd /c` (nothing is written to the console window, so it cannot block the bench), plus the start lines and stall dumps from the entry above.
 - **Metric before/after:** phi3 rerun: stalled after 1 of 84 generations (60+ min, no output) -> 84/84 generations in 1 h 29 min (11:15-12:44), 0 stall dumps, 0 tracebacks in `console.txt`.
 - **Not fixed (open):** writing to the console before the file is still the order in `bench.log()`; with console output redirected it cannot block. The two server-side 500s (section `02-convolutional-neural-networks--1-why-convolutions-suit-images`, 295 words, both modes, phi3 only) are counted as *infra error* in the report; their cause is not diagnosed (Ollama logs no error message for them), and they were not retried.
+
+## 2026-11-25: README misdescribed the section splitter (found while building `ask`)
+
+- **What broke:** the README said sections are "split at the shallowest heading level". Writing `ask --list-sections` tests showed a 606-word file with three `##` headings comes out as **one** section ("Notes", 606 words).
+- **Why:** `sections._emit` keeps a heading's whole text (subheadings included) as one section whenever it is 150-1200 words, and only splits text over 1200 words. The README described the intent, not the code; no test covered a short multi-heading file.
+- **Impact on results:** none. Every `notes_sample/` file is 1931-2140 words, so each was split into its seven `##` sections (249-319 words) exactly as the Datasets table reports; MDN pages were split the same way. It does matter for `ask` on a user's short notes file: all its headings become one section.
+- **Fix:** README wording corrected to describe the actual rule; `tests/test_ask.py::test_short_file_is_one_section_even_with_headings` pins it. The splitter itself is unchanged (it is what was benchmarked); splitting short files at their headings would be a separate, deliberate change.
+- **Metric before/after:** no benchmark metric changed (same 42 / 61 sections, same case-file hash).
