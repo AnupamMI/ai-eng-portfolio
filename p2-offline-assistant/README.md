@@ -46,7 +46,7 @@ Reproduce: `uv run python -m studyqa.build_dataset --notes notes_sample --n 42 -
 - **Failure kinds** for sections that never produce valid output: *schema* (invalid JSON or wrong shape), *runaway* (an attempt hit the 1536-token output cap), *infra error* (HTTP error or timeout).
 - **Tokens/sec**: Ollama's `eval_count / eval_duration` (decode only; excludes load and prompt processing).
 - **RAM**: working set of the `ollama serve` process tree above its idle baseline, split into load peak, *loaded* (after warm-up; the headline), generation peak and end of run. A single peak was misleading: loading briefly holds two copies of the weights (see LOG).
-- **LLM-graded (ChatGPT)**: 20 sections per model, both modes (120 rows), paired by section, blind (the sheet carries no model or mode; the key is kept separately), 1-3 rubric. The grades were produced by ChatGPT, **not by a human**. ChatGPT also wrote the source notes, so the grader is judging questions about text it generated itself; treat these grades as a second automatic metric, not as human judgment.
+- **LLM-graded (ChatGPT)**: 20 sections per model, both modes (120 rows), paired by section, blind (the sheet carries no model or mode; the key is kept separately), 1-3 rubric. The grades were produced by ChatGPT, **not by a human**. ChatGPT also wrote the source notes, so the grader is judging questions about text it generated itself. **LLM-graded, human-validated on 30 rows:** a blind, paired 30-row subsample (10 per model, 5 sections x 2 modes) was hand-graded to measure how far the ChatGPT grades can be trusted (see Results).
 
 `difficulty` is generated and schema-validated but **not evaluated**: there is no
 ground truth for it, and the grading rubric does not score it.
@@ -60,7 +60,8 @@ tau_quote = 0.85 / tau_answer = 0.4 before the run. Full tables: `runs/notes_com
 (not committed; reproduce with the commands in each module's docstring).
 
 **No model is declared best.** The two quality measures disagree (below), the grades are
-not human, and model-vs-model grade differences are confounded by section.
+LLM-graded (human-validated on 30 rows only), and model-vs-model grade differences are
+confounded by section.
 
 ### Reliability and speed
 
@@ -100,7 +101,7 @@ this sample size** (n = 20 graded pairs per model).
 
 - **They rank the models in opposite orders.** Constrained mode: groundedness llama > qwen > phi3, grades phi3 > qwen > llama (exact reverse). JSON mode: llama is first on groundedness and last on grades; qwen and phi3 tie on groundedness (0.85).
 - **Per question, they are uncorrelated:** Spearman between the LLM grade and quote fidelity -0.05, answer support -0.09, grounded@0.85/0.4 +0.05 (120 graded rows).
-- **The grades are LLM-graded (ChatGPT), not human.** ChatGPT also wrote the source notes. n = 20 sections per model per mode.
+- **The grades are LLM-graded (ChatGPT), human-validated on 30 rows** (next sections). ChatGPT also wrote the source notes. n = 20 sections per model per mode.
 - **Model-vs-model grade differences are confounded by section:** each model was graded on its own random 20 sections (pairs of models share 9-11 sections; all three share 5). Only the within-model json-vs-constrained comparisons are paired.
 - The groundedness ordering is also threshold-dependent: llama is first at every grid point, but qwen and phi3 swap at tau_answer >= 0.6 (sensitivity grids in the report).
 
@@ -123,9 +124,42 @@ no model calls.
 - **P2, within a model, copied answers get lower grades: not supported.** No model shows it; llama's copies are graded slightly *higher*; pooled difference -0.04 [-0.27, +0.19].
 - **Verdict: the hypothesis is not supported.** Copying explains part of what the lexical metric measures, but not why it disagrees with the LLM grades. Whatever the grader rewards, it is not "not copying" at the answer level.
 
-### TODO: human validation
+### Human validation of the LLM grades (30 rows)
 
-- [ ] Hand-grade 30 of the 120 rows blind (10 per model, 5 per mode, seeded sample), without seeing ChatGPT's grades. Report human-vs-ChatGPT agreement (Spearman, exact-agreement rate) and redo the lexical-metric Spearman against the human grades. Until then every grade-based statement above is about ChatGPT's judgment only.
+30 of the 120 ChatGPT-graded rows were hand-graded blind (10 per model: 5 sections x both
+modes, seeded; drawn from the blank sheet, without seeing ChatGPT's grades), then matched to
+ChatGPT's grade for the same row. 95% CIs are percentile bootstraps over rows (10,000
+resamples; resamples where a statistic is undefined, e.g. all grades equal, are dropped and
+counted in `grading/notes_full_human/agreement_vs_chatgpt.md`).
+
+| hand vs ChatGPT | value | 95% CI |
+|---|---|---|
+| weighted kappa, quadratic | 0.53 | [0.13, 0.78] |
+| weighted kappa, linear | 0.46 | [0.12, 0.73] |
+| Spearman rho | 0.53 | [0.17, 0.79] |
+| exact agreement | 0.70 (21/30) | [0.53, 0.87] |
+| mean grade (hand / ChatGPT) | 2.10 / 2.33 | |
+
+| | ChatGPT 1 | ChatGPT 2 | ChatGPT 3 |
+|---|---|---|---|
+| **hand 1** | 2 | 0 | 0 |
+| **hand 2** | 0 | 15 | 8 |
+| **hand 3** | 0 | 1 | 4 |
+
+- **Agreement is moderate** (quadratic-weighted kappa 0.53), with a wide CI at n = 30 (0.13-0.78).
+- **ChatGPT is more lenient:** in 8 of the 9 disagreements ChatGPT gave the higher grade (hand 2 vs ChatGPT 3); it gave 12 threes to the hand grader's 5.
+- **Both graders agreed on the two 1-grades.** With n = 2 that is weak evidence that ChatGPT catches clearly bad questions.
+- **The lexical metrics show no detectable correlation with either grader.** Every CI contains 0:
+
+| Spearman with the lexical metric | hand grades (n = 30) | ChatGPT grades (n = 120) |
+|---|---|---|
+| quote_fidelity | -0.27 [-0.62, +0.09] | -0.05 [-0.26, +0.18] |
+| answer_support | -0.05 [-0.39, +0.29] | -0.09 [-0.29, +0.11] |
+| grounded@0.85/0.4 | -0.09 [-0.44, +0.18] | +0.05 [-0.14, +0.24] |
+
+- **Per model:** llama3.2:3b has the lowest mean grade from both graders (hand 1.90 vs 2.20 for the other two; ChatGPT 2.05 vs 2.375-2.50). This is a weak, small-sample signal (10 hand-graded rows per model, section-confounded), not a finding. The hand-graded per-mode comparisons (n = 5 per model) are too small to report.
+
+- [x] Human validation: hand-grade 30 of the 120 rows blind and report agreement with ChatGPT and with the lexical metrics.
 
 ### Caveats that apply to the results
 
@@ -133,7 +167,7 @@ no model calls.
 - **phi3 ran in a separate session.** llama and qwen ran in `runs/notes_full` (started 02:05, 6.8 GB RAM available at start); phi3 ran in `runs/notes_full_phi3` (started 11:15, 9.3 GB available) after the first run was killed by the host. The commits differ (`a5ea99b` vs `c2305f0`; the change between them is diagnostics only: start lines and stall dumps), and the generation protocol (case file hash, prompt, num_ctx, num_predict, retries, seed, thresholds) is identical, which the report checks. But tok/s and RAM for phi3 are not strictly comparable with the other two.
 - **Runs are single samples.** Temperature 0 with a fixed seed was not bit-reproducible on this CPU (a rerun of one section changed phi3's outcome; see LOG), so per-section results can flip between runs. Comparisons use paired bootstrap CIs over sections for that reason.
 - **Notes are LLM-generated** (by ChatGPT; see Datasets), so they are cleaner than real notes.
-- **Grades are LLM-graded (ChatGPT), not hand-graded.** ChatGPT both wrote the notes and graded the questions about them (which ChatGPT model, and whether the same one, is not recorded). No human grades exist for this run.
+- **Grades are LLM-graded (ChatGPT), human-validated on 30 rows.** ChatGPT both wrote the notes and graded the questions about them (which ChatGPT model, and whether the same one, is not recorded). Only 30 of 120 rows have a human grade, from a single grader, and agreement with ChatGPT is moderate.
 
 ## Failures and fixes
 
@@ -148,7 +182,7 @@ See [docs/LOG.md](docs/LOG.md).
 | Retry after truncation | Tell the model it was cut off; don't echo the output | Echo the failed output with the error | Echoing a 1536-token truncation could overflow the context on retry. |
 | Groundedness | Lexical (quote fidelity + content-word overlap) | LLM judge | Free, deterministic, re-computable from stored outputs (fixes needed no re-run). But it does not track the LLM grades (Spearman ~0) and rewards copying. Kept as a cheap screen for fabricated quotes, not a quality score. |
 | Section-support metric | Reported | Dropped | Saturated (~1.00 everywhere), so useless as a score, but it separates "wrong quote" from "made-up answer". |
-| Grades | LLM-graded (ChatGPT), 120 rows | Human grades | Cheap and fast, but not human, and ChatGPT also wrote the notes. Grade conclusions are provisional until the 30-row human check. |
+| Grades | LLM-graded (ChatGPT), 120 rows, human-validated on 30 | Hand-grading all 120 rows | Cheap and fast, and ChatGPT also wrote the notes. The 30-row check gives moderate agreement (kappa 0.53) and shows ChatGPT grading higher, so absolute LLM-grade levels run high relative to the hand grader. |
 | Grading sample | Paired by section within a model | The same sections for all models | Within-model mode comparisons are clean, but model-vs-model grade comparisons are confounded by section. A shared section set (drawn from sections valid for every model in both modes) would have avoided that at almost no cost; next time, sample once for all models. |
 | Samples | 1 per section | Several per section | ~3 h total on CPU. Temperature 0 is not reproducible here, so per-section results can flip; only paired CIs over 42 sections are reported. |
 | Hardware | CPU only, models run one at a time | GPU, or concurrent models | Zero cost and isolated RAM numbers, but long runs: one was killed by the host for low memory, so phi3 ran in a separate session. |
