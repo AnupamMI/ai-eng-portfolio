@@ -61,7 +61,7 @@ _TBD: full run on notes_sample._
 - **phi3 ran in a separate session.** llama and qwen ran in `runs/notes_full` (started 02:05, 6.8 GB RAM available at start); phi3 ran in `runs/notes_full_phi3` (started 11:15, 9.3 GB available) after the first run was killed by the host. The commits differ (`a5ea99b` vs `c2305f0`; the change between them is diagnostics only: start lines and stall dumps), and the generation protocol (case file hash, prompt, num_ctx, num_predict, retries, seed, thresholds) is identical, which the report checks. But tok/s and RAM for phi3 are not strictly comparable with the other two.
 - **Runs are single samples.** Temperature 0 with a fixed seed was not bit-reproducible on this CPU (a rerun of one section changed phi3's outcome; see LOG), so per-section results can flip between runs. Comparisons use paired bootstrap CIs over sections for that reason.
 - **Notes are LLM-generated** (by ChatGPT; see Datasets), so they are cleaner than real notes.
-- **Grades are LLM-graded (ChatGPT), not hand-graded.** The same model family wrote the notes and graded the questions about them. No human grades exist for this run.
+- **Grades are LLM-graded (ChatGPT), not hand-graded.** ChatGPT both wrote the notes and graded the questions about them (which ChatGPT model, and whether the same one, is not recorded). No human grades exist for this run.
 
 ## Failures and fixes
 
