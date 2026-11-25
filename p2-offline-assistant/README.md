@@ -53,7 +53,79 @@ ground truth for it, and the grading rubric does not score it.
 
 ## Results
 
-_TBD: full run on notes_sample._
+42 notes sections x 3 models x 2 decoding modes, one sample each, thresholds frozen at
+tau_quote = 0.85 / tau_answer = 0.4 before the run. Full tables: `runs/notes_combined/report.md`
+(reliability, groundedness, memory, paired mode comparisons, sensitivity grids),
+`grading/notes_full/grades_report_llm_graded__chatgpt.md`, `grading/notes_full/copy_diagnostic.md`
+(not committed; reproduce with the commands in each module's docstring).
+
+**No model is declared best.** The two quality measures disagree (below), the grades are
+not human, and model-vs-model grade differences are confounded by section.
+
+### Reliability and speed
+
+| model | mode | valid 1st try | valid | failures (schema / runaway / infra) | sections retried | cap hits | tok/s p50 |
+|---|---|---|---|---|---|---|---|
+| llama3.2:3b | constrained | 1.00 | 1.00 | 0 / 0 / 0 | 0 | 0 | 13.9 |
+| llama3.2:3b | json | 0.79 | 0.93 | 3 / 0 / 0 | 9 | 0 | 14.0 |
+| phi3:mini | constrained | 0.95 | 0.98 | 0 / 0 / 1 | 1 | 1 | 11.6 |
+| phi3:mini | json | 0.95 | 0.98 | 0 / 0 / 1 | 1 | 0 | 11.6 |
+| qwen2.5:3b | constrained | 1.00 | 1.00 | 0 / 0 / 0 | 0 | 0 | 14.9 |
+| qwen2.5:3b | json | 1.00 | 1.00 | 0 / 0 / 0 | 0 | 0 | 14.8 |
+
+RAM above the idle server (MB, loaded / generation peak): llama 2448 / 4293, qwen 2055 / 2854,
+phi3 3646 / 10523. phi3 ran in a separate session (see caveats), so its tok/s and RAM are not
+strictly comparable with the other two.
+
+### Constrained vs JSON decoding (paired by section, 95% bootstrap CI)
+
+Of 12 paired comparisons (3 models x {valid first try, valid, grounded} on 42 sections, plus
+3 models x LLM grade on 20 sections), two CIs exclude zero, both for llama3.2:3b:
+
+- **First-try validity 0.79 -> 1.00** (+0.21, CI [+0.10, +0.36]). This is the one clear effect: schema-constrained decoding removed llama's JSON-mode schema failures and retries.
+- **Lexical groundedness 0.82 -> 0.91** (+0.10, CI [+0.02, +0.18]), end to end (invalid outputs count as ungrounded). This is on the lexical metric that does not track the grades (next section), so it is a statement about quote copying and overlap, not established quality.
+
+CIs are uncorrected for 12 comparisons. Every other comparison, including **all three
+LLM-grade comparisons** (llama +0.00, phi3 +0.15 [-0.05, +0.35], qwen -0.03 [-0.20, +0.13] on a
+0-1 scale), has a CI containing zero: **quality effects of constraining are not detectable at
+this sample size** (n = 20 graded pairs per model).
+
+### Groundedness and LLM grades disagree
+
+| model | grounded, valid only (constrained / json) | mean LLM grade 1-3 (constrained / json) |
+|---|---|---|
+| llama3.2:3b | 0.91 / 0.88 | 2.05 / 2.05 |
+| qwen2.5:3b | 0.88 / 0.85 | 2.35 / 2.40 |
+| phi3:mini | 0.83 / 0.85 | 2.65 / 2.35 |
+
+- **They rank the models in opposite orders.** Constrained mode: groundedness llama > qwen > phi3, grades phi3 > qwen > llama (exact reverse). JSON mode: llama is first on groundedness and last on grades; qwen and phi3 tie on groundedness (0.85).
+- **Per question, they are uncorrelated:** Spearman between the LLM grade and quote fidelity -0.05, answer support -0.09, grounded@0.85/0.4 +0.05 (120 graded rows).
+- **The grades are LLM-graded (ChatGPT), not human.** ChatGPT also wrote the source notes. n = 20 sections per model per mode.
+- **Model-vs-model grade differences are confounded by section:** each model was graded on its own random 20 sections (pairs of models share 9-11 sections; all three share 5). Only the within-model json-vs-constrained comparisons are paired.
+- The groundedness ordering is also threshold-dependent: llama is first at every grid point, but qwen and phi3 swap at tau_answer >= 0.6 (sensitivity grids in the report).
+
+### Diagnostic: does verbatim copying explain the disagreement?
+
+Hypothesis, written before computing: the lexical metric rewards answers copied from the
+text, while the rubric's 3 requires an answer that tests understanding, so copying raises
+groundedness and lowers grades. *Copy* = answer of >= 6 tokens with a best-window match
+>= 0.85 (the frozen tau_quote) against its quote or the section; computed from stored outputs,
+no model calls.
+
+| model | copy share, all valid questions | grounded: copies / non-copies | copy share, graded rows | LLM grade: copies / non-copies | non-copy minus copy (grade), 95% CI |
+|---|---|---|---|---|---|
+| llama3.2:3b | 0.60 | 0.95 / 0.82 | 0.57 | 2.13 / 1.94 | -0.19 [-0.53, +0.15] |
+| qwen2.5:3b | 0.53 | 0.92 / 0.81 | 0.47 | 2.42 / 2.33 | -0.09 [-0.49, +0.32] |
+| phi3:mini | 0.51 | 0.89 / 0.79 | 0.47 | 2.47 / 2.52 | +0.05 [-0.35, +0.44] |
+
+- **P3, copying inflates groundedness: supported.** Copied answers are grounded 0.10-0.13 more often in every model (CIs exclude 0).
+- **P1, models that copy more get lower grades: consistent but weak.** The copy-share order (llama > qwen ≈ phi3) matches the reverse of the grade order, but this is 3 points, the qwen/phi3 gap is 0.02, and it is confounded by section.
+- **P2, within a model, copied answers get lower grades: not supported.** No model shows it; llama's copies are graded slightly *higher*; pooled difference -0.04 [-0.27, +0.19].
+- **Verdict: the hypothesis is not supported.** Copying explains part of what the lexical metric measures, but not why it disagrees with the LLM grades. Whatever the grader rewards, it is not "not copying" at the answer level.
+
+### TODO: human validation
+
+- [ ] Hand-grade 30 of the 120 rows blind (10 per model, 5 per mode, seeded sample), without seeing ChatGPT's grades. Report human-vs-ChatGPT agreement (Spearman, exact-agreement rate) and redo the lexical-metric Spearman against the human grades. Until then every grade-based statement above is about ChatGPT's judgment only.
 
 ### Caveats that apply to the results
 
@@ -69,4 +141,14 @@ See [docs/LOG.md](docs/LOG.md).
 
 ## Trade-offs
 
-_TBD._
+| Decision | Chosen | Rejected | What it cost / bought here |
+|---|---|---|---|
+| Decoding | Schema-constrained (`format=<schema>`) | JSON mode + validation retries | Bought llama 0.79 -> 1.00 first-try validity at no measurable speed cost (13.9 vs 14.0 tok/s). Did not stop phi3's runaway: constrained decoding can still loop inside one string field. qwen and phi3 gained nothing measurable. |
+| Output cap | `num_predict = 1536` | 1024 (proposed), or no cap | No cap: a runaway hung 10 min and context-shifted the prompt away. 1024 would have truncated a valid 1043-token phi3 answer. 1536 bounds a runaway to ~3 min per attempt, and the retry recovered it every time. |
+| Retry after truncation | Tell the model it was cut off; don't echo the output | Echo the failed output with the error | Echoing a 1536-token truncation could overflow the context on retry. |
+| Groundedness | Lexical (quote fidelity + content-word overlap) | LLM judge | Free, deterministic, re-computable from stored outputs (fixes needed no re-run). But it does not track the LLM grades (Spearman ~0) and rewards copying. Kept as a cheap screen for fabricated quotes, not a quality score. |
+| Section-support metric | Reported | Dropped | Saturated (~1.00 everywhere), so useless as a score, but it separates "wrong quote" from "made-up answer". |
+| Grades | LLM-graded (ChatGPT), 120 rows | Human grades | Cheap and fast, but not human, and ChatGPT also wrote the notes. Grade conclusions are provisional until the 30-row human check. |
+| Grading sample | Paired by section within a model | The same sections for all models | Within-model mode comparisons are clean, but model-vs-model grade comparisons are confounded by section. A shared section set (drawn from sections valid for every model in both modes) would have avoided that at almost no cost; next time, sample once for all models. |
+| Samples | 1 per section | Several per section | ~3 h total on CPU. Temperature 0 is not reproducible here, so per-section results can flip; only paired CIs over 42 sections are reported. |
+| Hardware | CPU only, models run one at a time | GPU, or concurrent models | Zero cost and isolated RAM numbers, but long runs: one was killed by the host for low memory, so phi3 ran in a separate session. |
