@@ -19,3 +19,27 @@ Format: what broke, why, how fixed, metric before/after.
   overlap check (<= 3), so the test is not just about the single top spot.
 - **Before/after (seed 0 / seed 1):** max customer share of orders 0.054 / 0.087 -> 0.014 / 0.013;
   top-1 differs True / False -> True / True; top-5 overlap 3 / 5 -> 1 / 0.
+
+## 2026-11-25: PRE-REGISTERED stage-2 gate (written before any model run)
+Not a failure. It is recorded here so it is dated and committed before stage 2 produces numbers.
+Clarification (B) and the oracle (C) can only be as good as the model's plain SQL. If plain SQL is
+poor, the A/B/C comparison is mostly SQL noise and cannot be interpreted.
+- **Measure:** execution accuracy on the ~25 clear test questions (match on both seeds), per model,
+  as a point estimate. The CI is reported but is not used for the decision, which is fixed in advance.
+- **Gate: 0.50.** Below it, more than half of the failures on ambiguous questions would be SQL
+  failures and not ambiguity. With ~25 questions the 95% CI half-width is about ±0.19 near 0.5, so a
+  clarification effect would not be separable from SQL errors.
+- **A model below the gate** is still reported in stage 2, but it is excluded from the
+  clarification headline (its A/B/C numbers go to an appendix, labelled uninterpretable).
+- **If every 3B model is below the gate**, these steps apply in order, stopping at the first that
+  passes. Each step is logged here with the numbers before and after:
+  1. Use `qwen2.5-coder:7b` as the main model. Nothing about the prompt changes, so the test set
+     stays clean.
+  2. Add up to 3 few-shot examples, written and tuned **on the dev set only**, and rerun stage 2 for
+     all models. Both the zero-shot and few-shot numbers are reported.
+  3. Simplify the schema description (for example, column notes or a view for revenue). This is
+     last because it changes the task, and the README will say so.
+- **If no model passes after step 3**, the README reports plain-SQL accuracy as the result and says
+  the clarification comparison was not interpretable. No headline A/B/C number is given.
+- **Not allowed:** editing test questions, gold SQL or the glossary after seeing model output; or
+  moving the gate.
