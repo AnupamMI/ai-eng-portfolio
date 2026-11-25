@@ -21,18 +21,44 @@ uv run python -m studyqa ask notes_sample/03_transformers_and_attention.md --lis
   7. 7. Training, Evaluation, and Common Failure Modes (268 words)
 
 uv run python -m studyqa ask notes_sample/03_transformers_and_attention.md --section 3
+Generating 5 questions for section 3 with qwen2.5:3b (about a minute on CPU)...
 Section 3/7: 3. Scaled Dot-Product Self-Attention (274 words)
-Model qwen2.5:3b, constrained decoding, valid on attempt 1, <seconds> s
+Model qwen2.5:3b, constrained decoding, valid on attempt 1, 45 s, 543 tokens at 16.7 tok/s
 
-1. [<difficulty>] <question>
-   Answer: <answer>
-   Source: "<sentence copied from the section>"
-   ! quote not found verbatim in the section (best match 0.62)   <- only if the quote is not in the notes
-...
+1. [easy] What does the query, key, and value represent in self-attention?
+   Answer: The query expresses what a position is seeking, the key expresses what a position offers for matching, and the value contains the information that may be passed onward.
+   Source: "Self-attention transforms each input representation into a query, a key, and a value through learned linear projections. A query expresses what a position is seeking, a key expresses what a position offers for matching, and a value contains the information that may be passed onward."
+
+2. [medium] What is the purpose of dividing the dot product scores by the square root of the key dimension?
+   Answer: To keep score magnitudes in a manageable range and prevent softmax from producing small gradients for many alternatives.
+   Source: "Scaling matters because dot products can grow in magnitude with vector dimension. Large logits can make softmax extremely peaked, producing small gradients for many alternatives. Dividing by the square root of the key dimension helps keep score magnitudes in a manageable range."
+
+3. [medium] How do attention masks prevent a position from attending to certain tokens?
+   Answer: A causal mask, for example, blocks future positions in an autoregressive language model so that prediction at a given position cannot use later tokens.
+   Source: "Attention masks can prevent a position from attending to certain tokens. A causal mask, for example, blocks future positions in an autoregressive language model so that prediction at a given position cannot use later tokens."
+
+4. [medium] What is the limitation of interpreting attention weights as explanations?
+   Answer: A high weight indicates how the attention operation mixes values, not necessarily the full causal importance of a token to the final prediction.
+   Source: "Attention weights are sometimes interpreted as explanations, but that interpretation is limited. A high weight indicates how the attention operation mixes values, not necessarily the full causal importance of a token to the final prediction."
+
+5. [hard] What components contribute to the final prediction in addition to attention?
+   Answer: Residual paths, multiple heads, feed-forward layers, and later blocks also contribute to the final prediction.
+   Source: "Residual paths, multiple heads, feed-forward layers, and later blocks also contribute to the final prediction."
+   ! quote not found verbatim in the section (best match 0.75)
 ```
 
 (The first number is the one to pass to `--section`; these sample notes number their own
 headings too.)
+
+The output above is unedited, from one live run (2026-11-25, Ryzen 5 5600H, CPU only, Ollama
+0.40.18, no other load): **45 s wall time** including loading the model, **543 generated tokens
+at 16.7 tok/s** decode speed, valid on the first attempt. A second run of the same section with
+`--json` took 37 s (model already loaded), 552 tokens at 15.8 tok/s. These are single runs, not
+the benchmark's medians (14.8-14.9 tok/s for qwen2.5:3b over 84 generations, in a session with
+more background load).
+
+The flag on question 5 is correct: the section says "...and later blocks also contribute.";
+the model appended "to the final prediction" to its "quote".
 
 - `--json` prints only the validated JSON (`{"questions": [...]}`, the schema in `schema.py`), ASCII-escaped, so it can be piped; status lines go to stderr.
 - `--model M` picks another pulled Ollama model.
