@@ -114,3 +114,14 @@ def test_bootstrap_diff_for_independent_groups():
     assert d == 0 and lo < 0 < hi
     with pytest.raises(ValueError):
         bootstrap_diff([], [1.0])
+
+
+def test_bootstrap_ci_covers_statistic_and_counts_undefined_resamples():
+    import statistics as st
+    from evalkit import bootstrap_ci
+    lo, hi, dropped = bootstrap_ci([1.0, 2.0, 3.0, 4.0] * 10, st.fmean)
+    assert lo < 2.5 < hi and dropped == 0
+    # statistic undefined unless the resample contains both values
+    f = lambda xs: float("nan") if len(set(xs)) < 2 else 1.0
+    lo, hi, dropped = bootstrap_ci([0, 1], f, iters=1000)
+    assert lo == hi == 1.0 and 300 < dropped < 700  # P(all same) = 1/2 for k=2

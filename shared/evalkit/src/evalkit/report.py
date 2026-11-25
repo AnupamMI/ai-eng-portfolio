@@ -75,6 +75,27 @@ def bootstrap_diff(
             diffs[int(0.025 * iters)], diffs[int(0.975 * iters) - 1])
 
 
+def bootstrap_ci(
+    items: list, statistic, *, iters: int = 10_000, seed: int = 0
+) -> tuple[float, float, int]:
+    """Percentile 95% CI of `statistic(items)` resampling items with replacement.
+    Resamples where the statistic is undefined (NaN, e.g. a correlation with no
+    variance) are dropped; returns (low, high, n_dropped) so callers can report it."""
+    import math
+    rng = random.Random(seed)
+    vals, dropped = [], 0
+    for _ in range(iters):
+        v = statistic(rng.choices(items, k=len(items)))
+        if v is None or math.isnan(v):
+            dropped += 1
+        else:
+            vals.append(v)
+    if not vals:
+        return float("nan"), float("nan"), dropped
+    vals.sort()
+    return vals[int(0.025 * len(vals))], vals[max(0, int(0.975 * len(vals)) - 1)], dropped
+
+
 def _index(results: list[Result], name: str) -> dict[str, Result]:
     idx = {r.case_id: r for r in results}
     if len(idx) != len(results):
