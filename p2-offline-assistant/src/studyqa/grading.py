@@ -138,6 +138,46 @@ def subsample(blank_sheet: Path, key_path: Path, cases_path: Path, out: Path,
           f"(key in {out_key}; don't open it until grading is done)")
 
 
+def agree(sheet_a: Path, key_a: Path, sheet_b: Path, *, label_a: str, label_b: str) -> str:
+    """Row-by-row agreement between a subsample's grades (A, keyed via `source_id`
+    in its key) and the grades of the sheet it was drawn from (B)."""
+    from evalkit import confusion, exact_agreement, weighted_kappa
+
+    def grades(p: Path) -> dict[str, int]:
+        with open(p, encoding="utf-8-sig") as f:
+            return {r["id"]: int(r["grade"]) for r in csv.DictReader(f)}
+
+    ga, gb = grades(sheet_a), grades(sheet_b)
+    with open(key_a, encoding="utf-8-sig") as f:
+        key = {r["id"]: r for r in csv.DictReader(f)}
+    ids = sorted(ga)
+    a = [ga[i] for i in ids]
+    b = [gb[key[i]["source_id"]] for i in ids]
+    labels = [1, 2, 3]
+    m = confusion(a, b, labels)
+    dist = lambda xs: " / ".join(str(xs.count(v)) for v in labels)
+    lines = [f"# Agreement: {label_a} vs {label_b}", "",
+             f"{len(ids)} rows, matched by `source_id`. Grades 1-3.", "",
+             "| statistic | value |", "|---|---|",
+             f"| Spearman rho | {spearman([float(x) for x in a], [float(x) for x in b]):.2f} |",
+             f"| exact agreement | {exact_agreement(a, b):.2f} ({sum(x == y for x, y in zip(a, b))}"
+             f"/{len(a)}) |",
+             f"| weighted kappa, quadratic | {weighted_kappa(a, b, labels):.2f} |",
+             f"| weighted kappa, linear | {weighted_kappa(a, b, labels, weights='linear'):.2f} |",
+             f"| mean grade {label_a} | {statistics.fmean(a):.2f} |",
+             f"| mean grade {label_b} | {statistics.fmean(b):.2f} |",
+             f"| grade counts 1 / 2 / 3, {label_a} | {dist(a)} |",
+             f"| grade counts 1 / 2 / 3, {label_b} | {dist(b)} |", "",
+             f"Confusion (rows: {label_a}, columns: {label_b}):", "",
+             "| | " + " | ".join(f"{label_b} {v}" for v in labels) + " | total |",
+             "|---|" + "---|" * (len(labels) + 1)]
+    for v, row in zip(labels, m):
+        lines.append(f"| {label_a} {v} | " + " | ".join(map(str, row)) + f" | {sum(row)} |")
+    lines.append("| total | " + " | ".join(str(sum(r[j] for r in m)) for j in range(len(labels)))
+                 + f" | {len(a)} |")
+    return "\n".join(lines)
+
+
 def import_grades(run_dirs: list[Path], grades_dir: Path, *, grader: str, reground: bool = True,
                   key_path: Path | None = None, sheet: Path | None = None) -> str:
     """`grader` labels who produced the grades (e.g. "hand-graded", "LLM-graded (ChatGPT)") in the
@@ -214,8 +254,19 @@ def main(argv: list[str] | None = None) -> None:
     s.add_argument("--out-key", type=Path, required=True)
     s.add_argument("--sections-per-model", type=int, default=5, help="x2 modes per model")
     s.add_argument("--seed", type=int, default=1)
+    g = sub.add_parser("agree", help="row-by-row agreement of a subsample with its source sheet")
+    g.add_argument("--sheet", type=Path, required=True, help="graded subsample sheet")
+    g.add_argument("--key", type=Path, required=True, help="subsample key (has source_id)")
+    g.add_argument("--source-sheet", type=Path, required=True, help="graded source sheet")
+    g.add_argument("--label", required=True)
+    g.add_argument("--source-label", required=True)
+    g.add_argument("--out", type=Path, required=True)
     a = ap.parse_args(argv)
-    if a.cmd == "subsample":
+    if a.cmd == "agree":
+        md = agree(a.sheet, a.key, a.source_sheet, label_a=a.label, label_b=a.source_label)
+        a.out.write_text(md, encoding="utf-8")
+        print(md)
+    elif a.cmd == "subsample":
         subsample(a.src / "to_grade.csv", a.key, a.cases, a.out, a.out_key,
                   sections_per_model=a.sections_per_model, seed=a.seed)
     elif a.cmd == "export":

@@ -127,3 +127,28 @@ def test_subsample_is_paired_blind_and_ignores_earlier_grades(run_dir, tmp_path)
         assert r["answer"] == orig[k["source_id"]]["answer"]  # same row as the source export
     assert (sub_out / "sections.md").read_text(encoding="utf-8").count("\n## ") + 1 == len(
         {k["section"] for k in key})
+
+
+def test_agree_matches_rows_via_source_id(tmp_path):
+    from studyqa.grading import agree
+    def write(p, header, rows):
+        with open(p, "w", newline="", encoding="utf-8") as f:
+            w = csv.writer(f)
+            w.writerow(header)
+            w.writerows(rows)
+    hdr = ["id", "section", "title", "question", "answer", "source_quote", "grade", "notes"]
+    write(tmp_path / "src.csv", hdr, [["g001", "", "", "", "", "", "3", ""],
+                                      ["g002", "", "", "", "", "", "1", ""],
+                                      ["g003", "", "", "", "", "", "2", ""]])
+    # human ids are in a different order than the source ids: matching must use source_id
+    write(tmp_path / "h.csv", hdr, [["h01", "", "", "", "", "", "1", ""],
+                                    ["h02", "", "", "", "", "", "3", ""],
+                                    ["h03", "", "", "", "", "", "3", ""]])
+    write(tmp_path / "hk.csv", ["id", "model", "mode", "section", "q_idx", "source_id"],
+          [["h01", "m", "json", "s", "0", "g002"], ["h02", "m", "json", "s", "0", "g001"],
+           ["h03", "m", "json", "s", "0", "g003"]])
+    md = agree(tmp_path / "h.csv", tmp_path / "hk.csv", tmp_path / "src.csv",
+               label_a="hand", label_b="llm")
+    assert "| exact agreement | 0.67 (2/3) |" in md
+    assert "| hand 3 | 0 | 1 | 1 | 2 |" in md  # h03=3 vs g003=2, h02=3 vs g001=3
+    assert "| total | 1 | 1 | 1 | 3 |" in md
