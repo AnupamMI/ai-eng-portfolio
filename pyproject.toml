@@ -2,7 +2,7 @@
 name = "ai-eng-portfolio"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = ["evalkit", "studyqa"]
+dependencies = ["evalkit", "studyqa", "text2sql"]
 
 [tool.uv]
 package = false
@@ -10,15 +10,16 @@ package = false
 [tool.uv.sources]
 evalkit = { workspace = true }
 studyqa = { workspace = true }
+text2sql = { workspace = true }
 
 [tool.uv.workspace]
-members = ["shared/evalkit", "p2-offline-assistant"]
+members = ["shared/evalkit", "p2-offline-assistant", "p1-text2sql"]
 
 [dependency-groups]
 dev = ["pytest>=8"]
 
 [tool.pytest.ini_options]
-testpaths = ["shared/evalkit/tests", "p2-offline-assistant/tests"]
+testpaths = ["shared/evalkit/tests", "p2-offline-assistant/tests", "p1-text2sql/tests"]
 # Live tests call the local Ollama server. They are deselected by default so they
 # can never run during a benchmark and load a second model (run: pytest -m live).
 addopts = "--import-mode=importlib -m 'not live'"

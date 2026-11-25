@@ -7,6 +7,7 @@ members = [
     "ai-eng-portfolio",
     "evalkit",
     "studyqa",
+    "text2sql",
 ]
 
 [[package]]
@@ -16,6 +17,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "evalkit" },
     { name = "studyqa" },
+    { name = "text2sql" },
 ]
 
 [package.dev-dependencies]
@@ -27,6 +29,7 @@ dev = [
 requires-dist = [
     { name = "evalkit", editable = "shared/evalkit" },
     { name = "studyqa", editable = "p2-offline-assistant" },
+    { name = "text2sql", editable = "p1-text2sql" },
 ]
 
 [package.metadata.requires-dev]
@@ -378,6 +381,21 @@ dependencies = [
 requires-dist = [
     { name = "evalkit", editable = "shared/evalkit" },
     { name = "psutil", specifier = ">=5.9" },
+    { name = "pydantic", specifier = ">=2.7" },
+]
+
+[[package]]
+name = "text2sql"
+version = "0.1.0"
+source = { editable = "p1-text2sql" }
+dependencies = [
+    { name = "evalkit" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "evalkit", editable = "shared/evalkit" },
     { name = "pydantic", specifier = ">=2.7" },
 ]
 
