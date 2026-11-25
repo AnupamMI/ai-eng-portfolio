@@ -177,6 +177,11 @@ counted in [`results/agreement_vs_chatgpt.md`](results/agreement_vs_chatgpt.md))
 - **Notes are LLM-generated** (by ChatGPT; see Datasets), so they are cleaner than real notes.
 - **Grades are LLM-graded (ChatGPT), human-validated on 30 rows.** ChatGPT both wrote the notes and graded the questions about them (which ChatGPT model, and whether the same one, is not recorded). Only 30 of 120 rows have a human grade, from a single grader, and agreement with ChatGPT is moderate.
 
+## License
+
+Code: MIT ([LICENSE](../LICENSE)). The MDN sample in `sample_data/mdn/` is not covered by
+the MIT license; it remains CC-BY-SA 2.5 ([attribution](sample_data/mdn/ATTRIBUTION.md)).
+
 ## Failures and fixes
 
 See [docs/LOG.md](docs/LOG.md).
