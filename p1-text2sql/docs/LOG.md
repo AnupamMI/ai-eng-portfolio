@@ -106,3 +106,42 @@ nothing is frozen yet. The replacements keep 25 ambiguous questions and the cate
 (3 time_window, 1 entity), and they go through the same hand check before the freeze.
 **Metric:** labels accepted 46/50 questions (83/92 rows: the 4 rejected questions have 9 readings);
 gold SQL accepted 92/92 rows.
+
+## 2026-11-26: replacements for the four rejected questions, hand checked and approved
+**What was done:** four replacements were drafted under the user's guidance (time window: both
+readings must be natural, e.g. "past N weeks" or "recently"; entity: alternatives must be precise
+rules people use; readings must differ by at least 5 on both seeds and not coincide with any
+existing answer). Drafts that failed these checks were dropped before the hand check: a "top 5
+products" ranking (ties at the LIMIT boundary on both seeds), units per category (per-category gaps
+of 2), an open-order count (91, the same value as a19 on seed 0), and a distinct-customer count
+(gap of 1 on seed 1).
+**Hand check (user, all calls theirs):** approved 4/4, label_ok = y and gold_ok = y for every
+reading. The user's note: all four are genuinely ambiguous; a12 is the strongest pair, with "not
+yet delivered" the more conventional reading.
+
+| id | question | readings (seed 0 / seed 1) |
+|---|---|---|
+| a07 | How many orders, of any status, did we get over the past 4 weeks? | 28 days to today 409 / 421; last 4 full Mon-Sun weeks 403 / 412 |
+| a08 | How many units did we sell over the past two weeks? | 14 days to today 663 / 617; last 2 full Mon-Sun weeks 636 / 635 |
+| a10 | What was our revenue from customers in India recently? | last 30 days 50079.84 / 42794.41; last 90 days 123705.23 / 90365.68 |
+| a12 | What is the total value of the orders that are still open? | not shipped 12710.07 / 8033.21; not delivered 52375.38 / 49604.97 |
+
+**The rejected questions:** moved, unchanged and byte for byte, to `testset/rejected.jsonl` under
+their original ids. The validator does not load that file. The replacements reuse the ids a07,
+a08, a10 and a12 to keep the numbering, so **an id in an entry before this one refers to the
+rejected question**. The rejected versions also remain in git history (commit 439d301).
+`check_sheet.csv` was regenerated: 91 rows, all y/y. Test pairs went from 77 to 76 because the
+old a12 had 3 readings.
+**Metric:** validator 0 errors and 1 warning (da1 on seed 1 only, unchanged); 130 tests pass.
+
+**Scoring rules fixed with the set (not in the glossary, which is frozen):**
+- **Date boundaries:** "the last N days" includes today, so it starts on today minus (N-1) days
+  (a07: 2026-06-03 to 2026-06-30). A model that writes `>= date('2026-06-30', '-28 days')` gets
+  one extra day and is scored wrong. Such off-by-one-day answers are reported as the `date` error
+  type in the error taxonomy. The same rule already applied to a09 and a11. Size, seed 0: a07 409
+  -> 424, a08 663 -> 688, a10 (90d) 123705.23 -> 124825.54.
+- **Numbers (e.g. c22, a percentage with many decimals):** the comparator rounds gold and
+  predicted values to 2 decimals and then requires them to be equal (`execute.py`). This is not a
+  plus/minus tolerance, but it behaves like plus/minus 0.005 except at a rounding boundary. c22 is
+  8.2855 (-> 8.29) on seed 0 and 8.8889 (-> 8.89) on seed 1, far from a boundary compared with
+  float error. A model that rounds to 1 decimal or returns a fraction (0.0829) is scored wrong.

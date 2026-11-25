@@ -11,7 +11,7 @@
 | split | clear | ambiguous | metric | time_window | entity | scope | granularity | (question, reading) pairs |
 |---|---|---|---|---|---|---|---|---|
 | dev | 5 | 5 | 1 | 1 | 1 | 1 | 1 | 15 |
-| test | 25 | 25 | 6 | 5 | 5 | 5 | 4 | 77 |
+| test | 25 | 25 | 6 | 5 | 5 | 5 | 4 | 76 |
 
 ## Gold SQL difficulty, clear vs ambiguous (test set, mean per question)
 
@@ -20,13 +20,13 @@ not in SQL difficulty.
 
 | measure | clear | ambiguous |
 |---|---|---|
-| joins | 0.96 | 1.00 |
+| joins | 0.96 | 1.12 |
 | aggregates | 1.00 | 1.04 |
 | subqueries/CTEs | 0.16 | 0.04 |
 | uses dates | 0.56 | 0.72 |
 | GROUP BY | 0.48 | 0.48 |
 | HAVING | 0.12 | 0.04 |
-| chars | 171.36 | 173.60 |
+| chars | 171.36 | 183.48 |
 
 ## Results per reading (seed 0 rows / seed 1 rows)
 
@@ -84,19 +84,18 @@ not in SQL difficulty.
 | a05 | cash | 1 | 1 | (194710.21) |
 | a06 | rev | 3 | 3 | (Chloe Sharma) / (Kenji Haddad) / (Omar Smith) |
 | a06 | orders | 3 | 3 | (Kenji Haddad) / (Ravi Nguyen) / (Arjun Patel) |
-| a07 | calendar | 1 | 1 | (319) |
-| a07 | 30d | 1 | 1 | (435) |
-| a08 | ytd | 1 | 1 | (772986.30) |
-| a08 | 12m | 1 | 1 | (1131947.00) |
+| a07 | 28d | 1 | 1 | (409) |
+| a07 | weeks | 1 | 1 | (403) |
+| a08 | 14d | 1 | 1 | (663) |
+| a08 | weeks | 1 | 1 | (636) |
 | a09 | 30d | 3 | 3 | (Emma Silva) / (Ethan Kim) / (Arjun Lopez) |
 | a09 | 90d | 3 | 3 | (Kenji Smith) / (Ravi Ito) / (Emma Silva) |
-| a10 | q1 | 1 | 1 | (21) |
-| a10 | 3m | 1 | 1 | (30) |
+| a10 | 30d | 1 | 1 | (50079.84) |
+| a10 | 90d | 1 | 1 | (123705.23) |
 | a11 | 7d | 1 | 1 | (65810.06) |
 | a11 | week | 1 | 1 | (69442.36) |
-| a12 | registered | 1 | 1 | (300) |
-| a12 | ever | 1 | 1 | (269) |
-| a12 | 90d | 1 | 1 | (214) |
+| a12 | unshipped | 1 | 1 | (12710.07) |
+| a12 | undelivered | 1 | 1 | (52375.38) |
 | a13 | delivered | 1 | 1 | (307) |
 | a13 | paid | 1 | 1 | (369) |
 | a14 | units | 1 | 1 | (613) |
