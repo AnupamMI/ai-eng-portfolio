@@ -7,7 +7,7 @@ runs locally at zero cost (Ollama on CPU).
 | Project | What it is | Status |
 |---|---|---|
 | [`shared/evalkit`](shared/evalkit/) | Shared eval code: case/result schema, runner, scorers, paired bootstrap comparisons, agreement statistics, a minimal Ollama client with Pydantic-validated structured output | used by p2 |
-| [`p2-offline-assistant`](p2-offline-assistant/) | Study notes section in, structured revision questions out; benchmarks `llama3.2:3b`, `qwen2.5:3b` and `phi3:mini`, constrained vs JSON-mode decoding | done: [README](p2-offline-assistant/README.md), [failure log](p2-offline-assistant/docs/LOG.md), [results](p2-offline-assistant/results/) |
+| [`p2-offline-assistant`](p2-offline-assistant/) | Study notes section in, structured revision questions out; benchmarks `llama3.2:3b`, `qwen2.5:3b` and `phi3:mini`, constrained vs JSON-mode decoding | benchmark complete ([results](p2-offline-assistant/results/), [failure log](p2-offline-assistant/docs/LOG.md)); usable CLI `python -m studyqa ask` for markdown notes ([usage](p2-offline-assistant/README.md#usage)); PDF input not supported yet |
 | p1-text2sql, p3-mcp-server, p4-rag-evals, p5-code-reviewer | | planned |
 
 ## Setup

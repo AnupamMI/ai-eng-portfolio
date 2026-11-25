@@ -7,6 +7,41 @@ Ollama, and benchmarks `llama3.2:3b`, `qwen2.5:3b` and `phi3:mini` on CPU.
 Scope: one section in, questions out. No chunking, retrieval or vector search
 (that is p4), no tool calling (that is p3).
 
+## Usage
+
+Needs [Ollama](https://ollama.com) running locally with the model pulled
+(`ollama pull qwen2.5:3b`). From `p2-offline-assistant/`:
+
+```
+uv run python -m studyqa ask notes_sample/03_transformers_and_attention.md --list-sections
+  1. 1. From Sequence Models to Transformers (280 words)
+  2. 2. Tokens, Embeddings, and Positional Information (278 words)
+  3. 3. Scaled Dot-Product Self-Attention (274 words)
+  ...
+  7. 7. Training, Evaluation, and Common Failure Modes (268 words)
+
+uv run python -m studyqa ask notes_sample/03_transformers_and_attention.md --section 3
+Section 3/7: 3. Scaled Dot-Product Self-Attention (274 words)
+Model qwen2.5:3b, constrained decoding, valid on attempt 1, <seconds> s
+
+1. [<difficulty>] <question>
+   Answer: <answer>
+   Source: "<sentence copied from the section>"
+   ! quote not found verbatim in the section (best match 0.62)   <- only if the quote is not in the notes
+...
+```
+
+(The first number is the one to pass to `--section`; these sample notes number their own
+headings too.)
+
+- `--json` prints only the validated JSON (`{"questions": [...]}`, the schema in `schema.py`), ASCII-escaped, so it can be piped; status lines go to stderr.
+- `--model M` picks another pulled Ollama model.
+- **Default model `qwen2.5:3b`** is a reliability/speed/memory choice from the benchmark below (1.00 first-try validity in both modes, highest median tok/s, lowest loaded RAM). It is **not** a claim that it writes the best questions: no model is declared best (see Results).
+- Generation uses exactly the benchmarked settings: schema-constrained decoding, up to 2 retries shown the validation error, 1536-token output cap, 4096-token context.
+- Errors are explicit, with exit codes 2 (file not found, not markdown, PDF, section out of range, no usable sections), 3 (Ollama not running, model not pulled, request failed) and 1 (no valid output after 3 attempts; each attempt's error is printed).
+- Input is one markdown file. Sections follow the splitter rule below: a file of 1200 words or less is a single section; `--list-sections` shows skipped (too short / too long) parts with the reason. **PDF is not supported yet** (no PDF parser; the project adds no dependencies). Convert PDFs to `.md` first.
+- On CPU expect roughly half a minute to a minute per section (more if the model hits the output cap and retries).
+
 ## Datasets
 
 | Set | Source | Sections | Role |
