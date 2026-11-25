@@ -148,3 +148,21 @@ def test_cluster_bootstrap_weights_items_not_clusters():
     # Cluster "a" has 3 items with diff 1, "b" has 1 item with diff 0: item mean 0.75.
     point, lo, hi = cluster_bootstrap([0, 0, 0, 0], [1, 1, 1, 0], ["a", "a", "a", "b"], iters=2000)
     assert point == 0.75 and lo == 0.0 and hi == 1.0
+
+
+def test_stall_dump_arms_and_always_cancels(monkeypatch):
+    import pytest
+    from evalkit import runner as bench
+    calls = []
+    monkeypatch.setattr(bench.faulthandler, "dump_traceback_later",
+                        lambda s, repeat: calls.append(("arm", s, repeat)))
+    monkeypatch.setattr(bench.faulthandler, "cancel_dump_traceback_later",
+                        lambda: calls.append(("cancel",)))
+    with pytest.raises(RuntimeError):
+        with bench.stall_dump(900):
+            raise RuntimeError("generation failed")
+    assert calls == [("arm", 900, True), ("cancel",)]
+    calls.clear()
+    with bench.stall_dump(0):
+        pass
+    assert calls == []

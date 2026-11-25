@@ -12,9 +12,7 @@ Protocol (to keep CPU timing noise out of the comparisons):
 from __future__ import annotations
 
 import argparse
-import contextlib
 import datetime as dt
-import faulthandler
 import hashlib
 import json
 import platform
@@ -24,7 +22,7 @@ from pathlib import Path
 import httpx
 import psutil
 
-from evalkit import Case, Ollama, Result, load_cases, run, save_results
+from evalkit import Case, Ollama, Result, load_cases, run, save_results, stall_dump
 from studyqa.generate import NUM_CTX, NUM_PREDICT, RETRIES, generate
 from studyqa.grounding import ground
 from studyqa.memprobe import MemProbe
@@ -64,19 +62,6 @@ SCORERS = {
     "valid": lambda c, o: float(o["valid"]),
     "grounded": _grounded_rate,
 }
-
-
-@contextlib.contextmanager
-def stall_dump(seconds: float):
-    """Dump every thread's stack to stderr if the block runs longer than `seconds`
-    (repeating), so a hung generation shows where it is stuck. Does not kill it."""
-    if seconds > 0:
-        faulthandler.dump_traceback_later(seconds, repeat=True)
-    try:
-        yield
-    finally:
-        if seconds > 0:
-            faulthandler.cancel_dump_traceback_later()
 
 
 def _meta(args, cases_path: Path) -> dict:

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+import faulthandler
 import time
 from collections.abc import Callable
 from typing import Any
@@ -46,3 +48,17 @@ def run(
         if on_result:
             on_result(result)
     return results
+
+
+@contextlib.contextmanager
+def stall_dump(seconds: float):
+    """Dump every thread's stack to stderr if the block runs longer than `seconds`
+    (repeating), so a hung generation shows where it is stuck. Does not kill it.
+    Moved here from p2's bench (p2 LOG, 2026-11-25) so p1 reuses it."""
+    if seconds > 0:
+        faulthandler.dump_traceback_later(seconds, repeat=True)
+    try:
+        yield
+    finally:
+        if seconds > 0:
+            faulthandler.cancel_dump_traceback_later()
