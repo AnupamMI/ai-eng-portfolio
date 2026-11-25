@@ -2,8 +2,8 @@
 
     uv run python -m studyqa.grading export runs/full --cases data/full.jsonl --out grading/full
     # fill the `grade` column (1-3) in grading/full/to_grade.csv
-    uv run python -m studyqa.grading import runs/full --grades grading/full --grader "hand"
-    # grades from another file / grader: --sheet grading/full/graded.csv --grader "LLM (ChatGPT)"
+    uv run python -m studyqa.grading import runs/full --grades grading/full --grader "hand-graded"
+    # grades from another file / grader: --sheet grading/full/graded.csv --grader "LLM-graded (ChatGPT)"
 
 Sampling: per model, N sections drawn (seeded) from those valid in BOTH modes, one
 random question per (model, mode, section). The same sections are used for both
@@ -97,7 +97,7 @@ def export(run_dirs: list[Path], cases_path: Path, out: Path, n: int, seed: int,
 
 def import_grades(run_dirs: list[Path], grades_dir: Path, *, grader: str, reground: bool = True,
                   key_path: Path | None = None, sheet: Path | None = None) -> str:
-    """`grader` labels who produced the grades (e.g. "hand", "LLM (ChatGPT)") in the
+    """`grader` labels who produced the grades (e.g. "hand-graded", "LLM-graded (ChatGPT)") in the
     report and its filename; required so provenance cannot be dropped. `sheet`
     defaults to grades_dir/to_grade.csv; the blank export is never written."""
     sheet = sheet or grades_dir / "to_grade.csv"
@@ -124,7 +124,7 @@ def import_grades(run_dirs: list[Path], grades_dir: Path, *, grader: str, regrou
         pairs.append((grade, gr["quote_fidelity"], gr["answer_support"],
                       float(gr["quote_fidelity"] >= 0.85 and gr["answer_support"] >= 0.4)))
 
-    lines = [f"# Grades: {grader}-graded", f"Source sheet: `{sheet.name}`. Grader: **{grader}**.",
+    lines = [f"# Grades: {grader}", f"Source sheet: `{sheet.name}`. Grades: **{grader}**.",
              "Grade scaled to [0, 1] for the paired comparison: (grade - 1) / 2.", "",
              "| model | mode | n | mean grade (1-3) |", "|---|---|---|---|"]
     for (model, mode), rs in sorted(cells.items()):
@@ -136,7 +136,7 @@ def import_grades(run_dirs: list[Path], grades_dir: Path, *, grader: str, regrou
             d = compare(cells[(model, "json")], cells[(model, "constrained")])
             lines += ["", f"**{model}**", "", to_markdown(d)]
     hg = [p[0] for p in pairs]
-    lines += ["", f"## Does the lexical metric track the {grader} grades? (Spearman, all graded rows)",
+    lines += ["", f"## Does the lexical metric track the grades ({grader})? (Spearman, all graded rows)",
               "", "| metric | rho |", "|---|---|"]
     for name, i in [("quote_fidelity", 1), ("answer_support", 2), ("grounded@0.85/0.4", 3)]:
         lines.append(f"| {name} | {spearman(hg, [p[i] for p in pairs]):.2f} |")
@@ -161,7 +161,7 @@ def main(argv: list[str] | None = None) -> None:
     i.add_argument("--grades", type=Path, required=True)
     i.add_argument("--key", type=Path, help="key file path (default: GRADES/key.csv)")
     i.add_argument("--sheet", type=Path, help="graded CSV (default: GRADES/to_grade.csv)")
-    i.add_argument("--grader", required=True, help='who graded, e.g. "hand" or "LLM (ChatGPT)"')
+    i.add_argument("--grader", required=True, help='label for who graded, e.g. "hand-graded" or "LLM-graded (ChatGPT)"')
     a = ap.parse_args(argv)
     if a.cmd == "export":
         export(a.run_dirs, a.cases, a.out, a.n, a.seed, key_path=a.key)

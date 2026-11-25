@@ -51,7 +51,7 @@ def test_import_requires_all_grades_then_reports(run_dir, tmp_path):
     export(run, cases, out, n=3, seed=0)
     rows = list(csv.DictReader(open(out / "to_grade.csv", encoding="utf-8")))
     with pytest.raises(ValueError, match="without a 1-3 grade"):
-        import_grades(run, out, grader="hand", reground=False)
+        import_grades(run, out, grader="hand-graded", reground=False)
     key = {k["id"]: k for k in csv.DictReader(open(out / "key.csv", encoding="utf-8"))}
     for r in rows:
         r["grade"] = "3" if key[r["id"]]["mode"] == "constrained" else "1"
@@ -59,10 +59,10 @@ def test_import_requires_all_grades_then_reports(run_dir, tmp_path):
         w = csv.DictWriter(f, fieldnames=list(rows[0]))
         w.writeheader()
         w.writerows(rows)
-    md = import_grades(run, out, grader="hand", reground=False)
+    md = import_grades(run, out, grader="hand-graded", reground=False)
     assert "| a-3b | constrained | 3 | 3.00 |" in md and "| a-3b | json | 3 | 1.00 |" in md
     assert "| grade | 3 | 0.000 | 1.000 | +1.000 |" in md
-    assert md.startswith("# Grades: hand-graded") and (out / "grades_report_hand.md").exists()
+    assert md.startswith("# Grades: hand-graded") and (out / "grades_report_hand_graded.md").exists()
 
 
 def test_spearman():
@@ -83,7 +83,7 @@ def test_key_can_live_outside_the_grading_folder(run_dir, tmp_path):
         w = csv.DictWriter(f, fieldnames=list(rows[0]))
         w.writeheader()
         w.writerows(rows)
-    assert "| a-3b | json | 3 | 2.00 |" in import_grades(run, out, grader="hand", reground=False, key_path=key)
+    assert "| a-3b | json | 3 | 2.00 |" in import_grades(run, out, grader="hand-graded", reground=False, key_path=key)
 
 
 def test_import_reads_a_separate_graded_sheet_and_labels_the_grader(run_dir, tmp_path):
@@ -98,9 +98,9 @@ def test_import_reads_a_separate_graded_sheet_and_labels_the_grader(run_dir, tmp
         w = csv.DictWriter(f, fieldnames=list(rows[0]))
         w.writeheader()
         w.writerows(rows)
-    md = import_grades(run, out, grader="LLM (ChatGPT)", sheet=out / "graded.csv",
+    md = import_grades(run, out, grader="LLM-graded (ChatGPT)", sheet=out / "graded.csv",
                        reground=False)
-    assert md.startswith("# Grades: LLM (ChatGPT)-graded") and "`graded.csv`" in md
-    assert "track the LLM (ChatGPT) grades" in md
-    assert (out / "grades_report_llm__chatgpt.md").exists()
+    assert md.startswith("# Grades: LLM-graded (ChatGPT)") and "`graded.csv`" in md
+    assert "track the grades (LLM-graded (ChatGPT))" in md
+    assert (out / "grades_report_llm_graded__chatgpt.md").exists()
     assert (out / "to_grade.csv").read_text(encoding="utf-8") == blank  # blank untouched
