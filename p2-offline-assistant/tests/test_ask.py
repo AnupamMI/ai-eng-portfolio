@@ -138,6 +138,7 @@ def test_happy_path_text_uses_benchmarked_settings():
         [(_questions(_first_sentence(sec.text)), "stop")], seen=seen))
     assert code == OK and "Generating 5 questions" in err
     assert out.startswith("Section 1/7: ") and "valid on attempt 1" in out
+    assert "20 tokens at 20.0 tok/s" in out  # mock: eval_count 20 over 1 s
     for i in range(1, 6):
         assert f"\n{i}. [easy] What does this section explain?" in "\n" + out
     assert "quote not found" not in out  # verbatim quote
@@ -156,7 +157,7 @@ def test_json_output_is_only_the_validated_json():
     sec = load_sections(NOTES)[0][0]
     code, out, err = ask(section=1, as_json=True, transport=mock(
         [(_questions(_first_sentence(sec.text)), "stop")]))
-    assert code == OK and "Generating" in err
+    assert code == OK and "Generating" in err and "tok/s" in err
     qs = QuestionSet.model_validate_json(out)  # stdout is pure JSON
     assert len(qs.questions) == 5 and out.isascii()
 

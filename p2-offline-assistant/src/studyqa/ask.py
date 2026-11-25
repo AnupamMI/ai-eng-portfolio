@@ -105,11 +105,17 @@ def _attempt_lines(g: Generation) -> list[str]:
     return lines
 
 
+def _stats(g: Generation, model: str, seconds: float) -> str:
+    """Wall time over all attempts; tokens and decode speed of the final (valid) attempt."""
+    last = g.responses[-1]
+    return (f"Model {model}, constrained decoding, valid on attempt {g.attempts}, "
+            f"{seconds:.0f} s, {last.eval_count} tokens at {last.tokens_per_s:.1f} tok/s")
+
+
 def format_questions(g: Generation, sec: Section, n: int, total: int, model: str,
                      seconds: float) -> str:
     lines = [f"Section {n}/{total}: {_short_title(sec)} ({sec.words} words)",
-             f"Model {model}, constrained decoding, valid on attempt {g.attempts}, "
-             f"{seconds:.0f} s", ""]
+             _stats(g, model, seconds), ""]
     for i, q in enumerate(g.questions.questions, 1):
         lines += [f"{i}. [{q.difficulty}] {q.question}",
                   f"   Answer: {q.answer}",
@@ -163,6 +169,7 @@ def run_ask(path: Path, *, list_only: bool, section: int | None, model: str, as_
                       "Try again, or another model with --model.\n")
             return GENERATION_FAILED
         if as_json:
+            err.write(_stats(g, model, seconds) + "\n")
             out.write(json.dumps(g.questions.model_dump(mode="json"), indent=2,
                                  ensure_ascii=True) + "\n")
         else:
