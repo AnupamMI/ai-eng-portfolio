@@ -59,3 +59,30 @@ Not a failure; recorded before any model run, like the gate above.
   question asks for (`prompt.py`, frozen with the test set). The glossary also fixes how entities
   are returned (by name), so most format variation is removed at the source, not by the scorer.
 - **The 0.50 gate stays as pre-registered:** per model, point estimate, applied to the lenient metric.
+
+## 2026-11-25: stage 1, problems found while drafting the test set (before any model run)
+All fixed before the hand check. Nothing here has been seen by a model.
+1. **Four ambiguous drafts were not really ambiguous on the data.** Validator rule R4 rejected a03
+   (best category: revenue, units and order count all picked Electronics), a04 (biggest UK customer:
+   gross and net of refunds picked the same customer, because refunds are rare), a06 (countries
+   ranked by revenue or by order count: the same order, because country size dominates both) and a16
+   ("paid us": any payment vs net positive, the same count). **Fix:** the questions were replaced, not
+   the data: a03 became a ranking (revenue vs units), a04 "most popular product" (units vs distinct
+   customers), a06 "3 most valuable customers in India" (revenue vs orders), a16 "new customers in
+   2026" (signup vs first order). Changing the generator to separate the readings would have tuned
+   the data to the questions. **Metric:** R4 errors 6 -> 0 (4 questions).
+2. **Validator bug: R4 compared rankings as unordered sets.** The new a03 (two different
+   rankings of the same 6 categories) was rejected as "same result". **Why:** R4 called the
+   comparator without the reading's `ordered` flag, unlike the benchmark scorer. **Fix:** R4 now
+   scores each reading against the other with the target reading's `ordered` flag, exactly as the
+   benchmark does. Regression test `test_r4_respects_row_order`. **Metric:** false R4 errors 1 -> 0.
+3. **The clear questions were easier SQL than the ambiguous ones.** The validator's difficulty table
+   (test set, mean per question, clear vs ambiguous): joins 0.60 vs 1.00, uses dates 0.40 vs 0.72,
+   SQL length 137 vs 174 characters. That would bias the stage-2 gate: clear accuracy would overstate
+   the SQL ceiling on ambiguous questions. **Fix:** replaced the 5 most trivial clear questions
+   (c01, c08, c11, c13, c23: single table, no dates) with join and date questions. **After:** joins
+   0.96 vs 1.00, dates 0.56 vs 0.72, length 171 vs 174. The remaining date gap is structural:
+   the time-window category is about dates by definition. The README will state it.
+4. **Glossary gap:** "units sold" did not say whether cancelled orders count, so every "how many
+   did we sell" question carried a second, hidden ambiguity that its clarifying answer did not
+   resolve. **Fix (before the freeze):** the glossary now says units sold excludes cancelled orders.
