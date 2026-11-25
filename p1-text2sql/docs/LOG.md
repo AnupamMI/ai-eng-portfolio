@@ -43,3 +43,19 @@ poor, the A/B/C comparison is mostly SQL noise and cannot be interpreted.
   the clarification comparison was not interpretable. No headline A/B/C number is given.
 - **Not allowed:** editing test questions, gold SQL or the glossary after seeing model output; or
   moving the gate.
+
+## 2026-11-25: DECISION, headline metric allows extra columns (made before stage 2)
+Not a failure; recorded before any model run, like the gate above.
+- **Headline and gate metric: lenient execution accuracy.** A prediction matches if some ordered
+  choice of its columns reproduces the gold result (`execute.compare`). Extra columns are allowed;
+  rows, values and multiplicities must match exactly.
+- **Reported next to it in every table: strict (Spider-style)**, which also requires the same number
+  of columns (`Match.extra_columns` is False).
+- **Why lenient for the headline:** small models often add a helpful column (a name next to an id,
+  or the total next to a ranked name). That is a formatting choice, not a wrong answer, and the
+  project measures whether the SQL answers the question. Strict next to it shows how much the
+  leniency buys. A large gap between the two would itself be a finding about format adherence.
+- **Mitigation in the prompt:** the SQL prompt tells the model to return only the columns the
+  question asks for (`prompt.py`, frozen with the test set). The glossary also fixes how entities
+  are returned (by name), so most format variation is removed at the source, not by the scorer.
+- **The 0.50 gate stays as pre-registered:** per model, point estimate, applied to the lenient metric.
