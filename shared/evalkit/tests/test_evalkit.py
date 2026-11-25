@@ -104,3 +104,13 @@ def test_ollama_structured_output():
     out = llm.structured([{"role": "user", "content": "What is the capital of France?"}], Capital)
     assert out.value.capital.lower() == "paris"
     assert out.attempts >= 1 and out.responses[0].eval_count > 0
+
+
+def test_bootstrap_diff_for_independent_groups():
+    from evalkit import bootstrap_diff
+    d, lo, hi = bootstrap_diff([1.0] * 15 + [2.0] * 5, [3.0] * 15 + [2.0] * 5)
+    assert d == 1.5 and 0 < lo <= d <= hi
+    d, lo, hi = bootstrap_diff([1.0, 3.0] * 10, [3.0, 1.0] * 7)  # different sizes, same mean
+    assert d == 0 and lo < 0 < hi
+    with pytest.raises(ValueError):
+        bootstrap_diff([], [1.0])

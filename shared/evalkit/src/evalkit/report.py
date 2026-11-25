@@ -60,6 +60,21 @@ def paired_bootstrap(
     return means[int(0.025 * iters)], means[int(0.975 * iters) - 1]
 
 
+def bootstrap_diff(
+    a: list[float], b: list[float], *, iters: int = 10_000, seed: int = 0
+) -> tuple[float, float, float]:
+    """(mean(b) - mean(a), 95% CI low, high) for two INDEPENDENT groups,
+    resampling each group separately. Use paired_bootstrap when the same cases
+    appear in both groups."""
+    if not a or not b:
+        raise ValueError("bootstrap_diff needs two non-empty groups")
+    rng = random.Random(seed)
+    diffs = sorted(statistics.fmean(rng.choices(b, k=len(b)))
+                   - statistics.fmean(rng.choices(a, k=len(a))) for _ in range(iters))
+    return (statistics.fmean(b) - statistics.fmean(a),
+            diffs[int(0.025 * iters)], diffs[int(0.975 * iters) - 1])
+
+
 def _index(results: list[Result], name: str) -> dict[str, Result]:
     idx = {r.case_id: r for r in results}
     if len(idx) != len(results):
