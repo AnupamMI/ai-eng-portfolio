@@ -1,4 +1,4 @@
-﻿"""Turn a bench run directory into report.md + questions.csv.
+"""Turn a bench run directory into report.md + questions.csv.
 
     uv run python -m studyqa.report runs/smoke_public [--tau-quote 0.85 --tau-answer 0.4]
     uv run python -m studyqa.report runs/a runs/b --out runs/combined   # merge sessions
